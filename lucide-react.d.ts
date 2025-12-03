@@ -1,0 +1,40 @@
+declare module 'lucide-react' {
+  import { FC, SVGProps } from 'react';
+  export interface IconProps extends SVGProps<SVGSVGElement> {
+    size?: number | string;
+    color?: string;
+    strokeWidth?: number | string;
+  }
+  export type Icon = FC<IconProps>;
+  
+  export const Plus: Icon;
+  export const X: Icon;
+  export const Search: Icon;
+  export const ShoppingBag: Icon;
+  export const ChefHat: Icon;
+  export const Sparkles: Icon;
+  export const Clock: Icon;
+  export const ShoppingCart: Icon;
+  export const CheckCircle2: Icon;
+  export const AlertCircle: Icon;
+  export const MapPin: Icon;
+  export const Navigation: Icon;
+  export const ExternalLink: Icon;
+  export const RefreshCw: Icon;
+  export const Eye: Icon;
+  export const Check: Icon;
+  export const Filter: Icon;
+  export const Camera: Icon;
+  export const Loader2: Icon;
+  export const Store: Icon;
+  export const Database: Icon;
+  export const Calendar: Icon;
+  export const Settings: Icon;
+  export const Play: Icon;
+  export const CheckSquare: Icon;
+  export const ArrowRight: Icon;
+  export const ArrowLeft: Icon;
+  export const PlayCircle: Icon;
+  export const Flame: Icon;
+  export const Activity: Icon;
+}
