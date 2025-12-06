@@ -1,3 +1,4 @@
+
 export interface Ingredient {
   name: string;
   quantity: string;
@@ -29,6 +30,7 @@ export interface PantryItem {
   id: string;
   name: string;
   addedAt: number;
+  expiryDate?: number; // timestamp
 }
 
 export interface RecipeMatch {
@@ -71,6 +73,7 @@ export interface SavedStore {
 }
 
 export interface UserPreferences {
+  isPremium?: boolean; // NEW: Track subscription status
   dietary: {
     vegan: boolean;
     vegetarian: boolean;
@@ -78,4 +81,22 @@ export interface UserPreferences {
     dairyFree: boolean;
   };
   allergies: string;
+  nutritionalGoals: {
+    maxCaloriesPerServing?: number;
+    minProteinPerServing?: number; // in grams
+  };
+}
+
+// Analytics Types
+export interface CookingEvent {
+  timestamp: number;
+  recipeId: string;
+  recipeName: string;
+  cuisine: string;
+}
+
+export interface ShoppingEvent {
+  timestamp: number;
+  itemCount: number;
+  items: string[];
 }

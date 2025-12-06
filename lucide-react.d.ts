@@ -1,3 +1,4 @@
+
 declare module 'lucide-react' {
   import { FC, SVGProps } from 'react';
   export interface IconProps extends SVGProps<SVGSVGElement> {
@@ -40,4 +41,14 @@ declare module 'lucide-react' {
   export const Lightbulb: Icon;
   export const Sun: Icon;
   export const Moon: Icon;
+  export const Heart: Icon;
+  export const CalendarDays: Icon;
+  export const Trash2: Icon;
+  export const FileSpreadsheet: Icon;
+  export const BarChart3: Icon;
+  export const TrendingUp: Icon;
+  export const PieChart: Icon;
+  export const Crown: Icon; // New
+  export const Zap: Icon; // New
+  export const Star: Icon; // New
 }

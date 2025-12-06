@@ -1,15 +1,18 @@
+
 import React from 'react';
 import { RecipeMatch, Ingredient } from '../types';
-import { Clock, ChefHat, ShoppingCart, CircleCheck, CircleAlert, RefreshCw, Eye, Flame } from 'lucide-react';
+import { Clock, ChefHat, ShoppingCart, CircleCheck, RefreshCw, Eye, Flame, Heart } from 'lucide-react';
 
 interface RecipeCardProps {
   match: RecipeMatch;
+  isFavorite: boolean;
   onShop: (missing: Ingredient[]) => void;
   onViewDetails: () => void;
   onCook: () => void;
+  onToggleFavorite: () => void;
 }
 
-export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDetails, onCook }) => {
+export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, onShop, onViewDetails, onCook, onToggleFavorite }) => {
   const { recipe, matchScore, missingIngredients, substitutableIngredients } = match;
   
   // Format score as percentage
@@ -35,14 +38,21 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDet
     return acc;
   }, {} as Record<string, Ingredient[]>);
 
-  // Sort categories alphabetically or by custom order if needed
   const sortedCategories = Object.keys(groupedMissing).sort();
   const displayCategories = sortedCategories.slice(0, 3); // Show max 3 categories
   const hiddenCount = missingIngredients.length - displayCategories.reduce((sum, cat) => sum + groupedMissing[cat].length, 0);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col h-full hover:shadow-md transition duration-300 group">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col h-full hover:shadow-md transition duration-300 group relative">
       
+      {/* Favorite Button */}
+      <button 
+        onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+        className="absolute top-3 left-3 z-20 p-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 transition"
+      >
+        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-500 dark:text-gray-400'}`} />
+      </button>
+
       {/* Image Placeholder */}
       <div 
         onClick={onViewDetails}

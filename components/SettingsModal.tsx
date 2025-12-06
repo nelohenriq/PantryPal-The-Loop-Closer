@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { UserPreferences } from '../types';
-import { X, Check } from 'lucide-react';
+import { X, Check, Activity, Flame } from 'lucide-react';
 
 interface SettingsModalProps {
   preferences: UserPreferences;
@@ -28,9 +29,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ preferences, onSav
     }));
   };
 
+  const handleNutritionChange = (key: keyof UserPreferences['nutritionalGoals'], value: string) => {
+      setLocalPrefs(prev => ({
+          ...prev,
+          nutritionalGoals: {
+              ...prev.nutritionalGoals,
+              [key]: value ? parseInt(value) : undefined
+          }
+      }));
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all border border-gray-200 dark:border-gray-800">
         {/* Header */}
         <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
           <h2 className="text-xl font-bold text-gray-800 dark:text-white">Dietary Preferences</h2>
@@ -65,6 +76,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ preferences, onSav
                   {localPrefs.dietary[key as keyof UserPreferences['dietary']] && <Check className="w-4 h-4 text-emerald-500" />}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Nutritional Goals */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">Nutritional Goals</h3>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <Flame className="w-3 h-3" /> Max Calories / Meal
+                    </label>
+                    <input 
+                        type="number"
+                        placeholder="e.g. 600"
+                        value={localPrefs.nutritionalGoals?.maxCaloriesPerServing || ''}
+                        onChange={(e) => handleNutritionChange('maxCaloriesPerServing', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <Activity className="w-3 h-3" /> Min Protein (g)
+                    </label>
+                    <input 
+                        type="number"
+                        placeholder="e.g. 30"
+                        value={localPrefs.nutritionalGoals?.minProteinPerServing || ''}
+                        onChange={(e) => handleNutritionChange('minProteinPerServing', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                </div>
             </div>
           </div>
 

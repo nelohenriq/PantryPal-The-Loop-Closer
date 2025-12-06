@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Recipe } from '../types';
 import { X, ArrowRight, ArrowLeft, CircleCheck, ChefHat } from 'lucide-react';
@@ -5,14 +6,20 @@ import { X, ArrowRight, ArrowLeft, CircleCheck, ChefHat } from 'lucide-react';
 interface CookingModeProps {
   recipe: Recipe;
   onClose: () => void;
+  onComplete: () => void; // New prop to trigger logging
 }
 
-export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onClose }) => {
+export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onClose, onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   const steps = recipe.instructions;
   const isFirst = currentStep === 0;
   const isLast = currentStep === steps.length - 1;
+
+  const handleFinish = () => {
+      onComplete();
+      onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-900 flex flex-col transition-colors duration-200">
@@ -64,7 +71,7 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onClose }) => 
           
           {isLast ? (
             <button 
-                onClick={onClose}
+                onClick={handleFinish}
                 className="flex-[2] py-4 rounded-2xl bg-emerald-600 text-white font-bold text-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 dark:shadow-none"
             >
                 <CircleCheck className="w-6 h-6" /> Finish Cooking

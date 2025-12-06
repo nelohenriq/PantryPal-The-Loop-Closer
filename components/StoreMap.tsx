@@ -9,9 +9,10 @@ interface StoreMapProps {
   loading: boolean;
   onClose: () => void;
   onAddToPantry: (items: string[]) => void;
+  onLogPurchase: (items: string[]) => void; // New prop for analytics
 }
 
-export const StoreMap: React.FC<StoreMapProps> = ({ missingIngredients, storeData, loading, onClose, onAddToPantry }) => {
+export const StoreMap: React.FC<StoreMapProps> = ({ missingIngredients, storeData, loading, onClose, onAddToPantry, onLogPurchase }) => {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
 
   // Extract Map items from chunks
@@ -28,7 +29,9 @@ export const StoreMap: React.FC<StoreMapProps> = ({ missingIngredients, storeDat
 
   const handleFinish = () => {
     if (checkedItems.size > 0) {
-        onAddToPantry(Array.from(checkedItems));
+        const itemsArray = Array.from(checkedItems);
+        onAddToPantry(itemsArray);
+        onLogPurchase(itemsArray); // Log analytics
     }
     onClose();
   };

@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { RecipeMatch, Ingredient } from '../types';
-import { X, CircleCheck, CircleAlert, RefreshCw, ShoppingCart, Clock, ChefHat, Check, PlayCircle, Flame, Activity, LoaderCircle } from 'lucide-react';
+import { X, CircleCheck, CircleAlert, RefreshCw, ShoppingCart, Clock, ChefHat, Check, PlayCircle, Flame, Activity, LoaderCircle, ExternalLink } from 'lucide-react';
 import { CookingMode } from './CookingMode';
 import { generateRecipeImage } from '../services/geminiService';
 
@@ -9,9 +10,10 @@ interface RecipeDetailModalProps {
   onClose: () => void;
   onShop: (missing: Ingredient[]) => void;
   initialCookingMode?: boolean;
+  onCompleteCooking?: () => void; // New prop for analytics hook
 }
 
-export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, onClose, onShop, initialCookingMode = false }) => {
+export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, onClose, onShop, initialCookingMode = false, onCompleteCooking }) => {
   const [showCookingMode, setShowCookingMode] = useState(initialCookingMode);
   const [imageUrl, setImageUrl] = useState<string | null>(match.recipe.imageUrl || null);
   const [loadingImage, setLoadingImage] = useState(false);
@@ -35,7 +37,13 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, onC
   }, [recipe.name, recipe.id]);
   
   if (showCookingMode) {
-    return <CookingMode recipe={recipe} onClose={() => setShowCookingMode(false)} />;
+    return <CookingMode 
+                recipe={recipe} 
+                onClose={() => setShowCookingMode(false)}
+                onComplete={() => {
+                    if (onCompleteCooking) onCompleteCooking();
+                }}
+            />;
   }
 
   const groupByCategory = (items: Ingredient[]) => {
@@ -117,9 +125,15 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, onC
                    {/* Missing Ingredients - High Priority */}
                    {missingIngredients.length > 0 && (
                       <div>
-                         <h4 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <ShoppingCart className="w-4 h-4" /> To Buy ({missingIngredients.length})
-                         </h4>
+                         <div className="flex justify-between items-center mb-3">
+                            <h4 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-2">
+                                <ShoppingCart className="w-4 h-4" /> To Buy ({missingIngredients.length})
+                            </h4>
+                            {/* Affiliate Link Placeholder */}
+                            <a href="#" className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:underline">
+                                <ExternalLink className="w-3 h-3" /> Order Online
+                            </a>
+                         </div>
                          <div className="space-y-4">
                            {Object.entries(missingGrouped).map(([cat, items]) => (
                              <div key={`missing-cat-${cat}`}>

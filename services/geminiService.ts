@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Recipe, GroundingChunk, SavedStore, UserPreferences } from "../types";
 
@@ -34,6 +35,22 @@ export const generateRecipes = async (
     ? `The user follows these dietary rules: ${dietaryRestrictions.join(", ")}.`
     : "";
 
+  // Nutritional Goals
+  const nutritionString = [];
+  if (preferences.nutritionalGoals?.maxCaloriesPerServing) {
+      nutritionString.push(`Max ${preferences.nutritionalGoals.maxCaloriesPerServing} calories per serving`);
+  }
+  if (preferences.nutritionalGoals?.minProteinPerServing) {
+      nutritionString.push(`Min ${preferences.nutritionalGoals.minProteinPerServing}g protein per serving`);
+  }
+  const nutritionConstraint = nutritionString.length > 0 
+    ? `NUTRITIONAL GOALS: The recipes MUST meet these targets: ${nutritionString.join(", ")}.` 
+    : "";
+
+  // Seasonal Awareness
+  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+  const seasonalString = `It is currently ${currentMonth}. Prioritize ingredients that are typically in season during this month for authentic flavor and cost-efficiency.`;
+
   const prompt = `
     You are an expert Chef specializing in ASIAN CUISINE (East Asian, Southeast Asian, South Asian).
     Suggest 4 distinct recipes for: "${query}".
@@ -44,6 +61,8 @@ export const generateRecipes = async (
     ${pantryString}
     ${dietString}
     ${allergyString}
+    ${nutritionConstraint}
+    ${seasonalString}
     
     Guidelines:
     1. Prioritize recipes that utilize the user's existing pantry ingredients where possible.
