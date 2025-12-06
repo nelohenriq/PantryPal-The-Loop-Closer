@@ -30,21 +30,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ preferences, onSav
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all border border-gray-200 dark:border-gray-800">
         {/* Header */}
-        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <h2 className="text-xl font-bold text-gray-800">Dietary Preferences</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition">
-            <X className="w-5 h-5 text-gray-500" />
+        <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Dietary Preferences</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition">
+            <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 bg-white dark:bg-gray-900">
           
           {/* Diet Toggles */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Restrictions</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">Restrictions</h3>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { key: 'vegan', label: 'Vegan' },
@@ -57,8 +57,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ preferences, onSav
                   onClick={() => toggleDiet(key as keyof UserPreferences['dietary'])}
                   className={`flex items-center justify-between px-4 py-3 rounded-xl border font-medium transition-all ${
                     localPrefs.dietary[key as keyof UserPreferences['dietary']]
-                      ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm'
-                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-700 dark:text-emerald-400 shadow-sm'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   {label}
@@ -70,24 +70,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ preferences, onSav
 
           {/* Allergies */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Allergies</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">Allergies</h3>
             <textarea
               value={localPrefs.allergies}
               onChange={handleAllergiesChange}
               placeholder="e.g. Peanuts, Shellfish, Strawberries..."
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm min-h-[100px] resize-none"
+              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm min-h-[100px] resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
             />
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
               We will instruct the AI to strictly avoid these ingredients.
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 flex justify-end">
           <button 
             onClick={() => { onSave(localPrefs); onClose(); }}
-            className="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition shadow-lg shadow-gray-200"
+            className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition shadow-lg shadow-gray-200 dark:shadow-none"
           >
             Save Preferences
           </button>

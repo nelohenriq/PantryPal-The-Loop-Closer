@@ -90,7 +90,7 @@ function singularize(word: string): string {
 }
 
 // Clean up ingredient strings
-function normalize(text: string): string {
+export function normalize(text: string): string {
   // 1. Lowercase
   let clean = text.toLowerCase();
   

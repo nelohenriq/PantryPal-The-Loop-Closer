@@ -1,14 +1,14 @@
 export const COMMON_PANTRY_ITEMS = [
-  "Salt", "Pepper", "Olive Oil", "Garlic", "Onion", "Rice", "Pasta", 
-  "Soy Sauce", "Eggs", "Milk", "Butter", "Flour", "Sugar", "Ginger", 
-  "Chicken Stock", "Tomato Paste"
+  "Soy Sauce", "Rice", "Sesame Oil", "Gochujang", "Miso", "Ginger", "Garlic", 
+  "Green Onions", "Tofu", "Kimchi", "Fish Sauce", "Noodles", "Rice Vinegar", 
+  "Mirin", "Sriracha", "Coconut Milk"
 ];
 
 export const CUISINE_SUGGESTIONS = [
-  "Korean Stir-fry",
-  "Japanese Noodle Soup",
-  "Italian Pasta",
-  "Mexican Taco Night",
-  "Mediterranean Salad",
-  "Thai Curry"
+  "Korean Kimchi Stew",
+  "Japanese Ramen",
+  "Sichuan Mapo Tofu",
+  "Thai Green Curry",
+  "Vietnamese Pho",
+  "Pad Thai"
 ];

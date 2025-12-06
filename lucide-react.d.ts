@@ -15,8 +15,8 @@ declare module 'lucide-react' {
   export const Sparkles: Icon;
   export const Clock: Icon;
   export const ShoppingCart: Icon;
-  export const CheckCircle2: Icon;
-  export const AlertCircle: Icon;
+  export const CircleCheck: Icon;
+  export const CircleAlert: Icon;
   export const MapPin: Icon;
   export const Navigation: Icon;
   export const ExternalLink: Icon;
@@ -25,16 +25,19 @@ declare module 'lucide-react' {
   export const Check: Icon;
   export const Filter: Icon;
   export const Camera: Icon;
-  export const Loader2: Icon;
+  export const LoaderCircle: Icon;
   export const Store: Icon;
   export const Database: Icon;
   export const Calendar: Icon;
   export const Settings: Icon;
   export const Play: Icon;
-  export const CheckSquare: Icon;
+  export const SquareCheck: Icon;
   export const ArrowRight: Icon;
   export const ArrowLeft: Icon;
   export const PlayCircle: Icon;
   export const Flame: Icon;
   export const Activity: Icon;
+  export const Lightbulb: Icon;
+  export const Sun: Icon;
+  export const Moon: Icon;
 }

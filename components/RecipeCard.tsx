@@ -1,14 +1,15 @@
 import React from 'react';
 import { RecipeMatch, Ingredient } from '../types';
-import { Clock, ChefHat, ShoppingCart, CheckCircle2, AlertCircle, RefreshCw, Eye, Flame } from 'lucide-react';
+import { Clock, ChefHat, ShoppingCart, CircleCheck, CircleAlert, RefreshCw, Eye, Flame } from 'lucide-react';
 
 interface RecipeCardProps {
   match: RecipeMatch;
   onShop: (missing: Ingredient[]) => void;
   onViewDetails: () => void;
+  onCook: () => void;
 }
 
-export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDetails }) => {
+export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDetails, onCook }) => {
   const { recipe, matchScore, missingIngredients, substitutableIngredients } = match;
   
   // Format score as percentage
@@ -19,12 +20,12 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDet
   const isMediumMatch = scorePercent >= 50 && scorePercent < 80;
   
   const scoreColor = isHighMatch 
-    ? 'text-emerald-600 bg-emerald-50 border-emerald-200' 
+    ? 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400' 
     : isMediumMatch 
-      ? 'text-amber-600 bg-amber-50 border-amber-200' 
-      : 'text-gray-600 bg-gray-100 border-gray-200';
+      ? 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400' 
+      : 'text-gray-600 bg-gray-100 border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400';
 
-  const barColor = isHighMatch ? 'bg-emerald-500' : isMediumMatch ? 'bg-amber-500' : 'bg-gray-300';
+  const barColor = isHighMatch ? 'bg-emerald-500' : isMediumMatch ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600';
 
   // Group missing ingredients by category
   const groupedMissing = missingIngredients.reduce((acc, ing) => {
@@ -40,12 +41,12 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDet
   const hiddenCount = missingIngredients.length - displayCategories.reduce((sum, cat) => sum + groupedMissing[cat].length, 0);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full hover:shadow-md transition duration-300 group">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col h-full hover:shadow-md transition duration-300 group">
       
       {/* Image Placeholder */}
       <div 
         onClick={onViewDetails}
-        className="h-40 bg-gray-100 relative overflow-hidden cursor-pointer"
+        className="h-40 bg-gray-100 dark:bg-gray-800 relative overflow-hidden cursor-pointer"
       >
         <img 
           src={recipe.imageUrl || `https://picsum.photos/seed/${recipe.id}/800/400`} 
@@ -54,12 +55,12 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDet
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
         <div className="absolute top-3 right-3 flex gap-2">
-            <div className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-bold shadow-sm text-gray-700 flex items-center gap-1">
+            <div className="px-3 py-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full text-xs font-bold shadow-sm text-gray-700 dark:text-gray-200 flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 {recipe.timeMinutes}m
             </div>
             {recipe.nutrition && (
-                <div className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-bold shadow-sm text-orange-600 flex items-center gap-1">
+                <div className="px-3 py-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full text-xs font-bold shadow-sm text-orange-600 dark:text-orange-400 flex items-center gap-1">
                     <Flame className="w-3 h-3" />
                     {recipe.nutrition.calories}
                 </div>
@@ -78,15 +79,15 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDet
              <ChefHat className="w-3.5 h-3.5" />
              {scorePercent}% Match
            </div>
-           <span className="text-xs text-gray-400 font-medium">{recipe.difficulty}</span>
+           <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">{recipe.difficulty}</span>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-1.5 bg-gray-100 rounded-full mb-4 overflow-hidden">
+        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mb-4 overflow-hidden">
             <div className={`h-full ${barColor} rounded-full transition-all duration-1000`} style={{ width: `${scorePercent}%` }}></div>
         </div>
         
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">{recipe.description}</p>
+        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2 flex-grow">{recipe.description}</p>
 
         {/* Ingredients Status Preview */}
         <div className="mb-4">
@@ -94,10 +95,10 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDet
                 <div className="space-y-2">
                     {displayCategories.map(cat => (
                         <div key={cat} className="flex items-start text-xs leading-snug">
-                            <span className="font-semibold text-gray-500 w-16 shrink-0 truncate mt-0.5">{cat}</span>
+                            <span className="font-semibold text-gray-500 dark:text-gray-400 w-16 shrink-0 truncate mt-0.5">{cat}</span>
                             <div className="flex flex-wrap gap-1">
                                 {groupedMissing[cat].map((ing, i) => (
-                                    <span key={i} className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100/50">
+                                    <span key={i} className="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded border border-red-100/50 dark:border-red-900/30">
                                         {ing.name}
                                     </span>
                                 ))}
@@ -105,21 +106,21 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDet
                         </div>
                     ))}
                     {hiddenCount > 0 && (
-                        <div className="pl-16 text-[10px] text-gray-400 font-medium">
+                        <div className="pl-16 text-[10px] text-gray-400 dark:text-gray-500 font-medium">
                             +{hiddenCount} more items...
                         </div>
                     )}
                 </div>
             ) : (
-                 <span className="flex items-center gap-1 text-xs px-2 py-1.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100 font-medium w-full justify-center">
-                   <CheckCircle2 className="w-3.5 h-3.5" /> All ingredients ready
+                 <span className="flex items-center gap-1 text-xs px-2 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-md border border-emerald-100 dark:border-emerald-800 font-medium w-full justify-center">
+                   <CircleCheck className="w-3.5 h-3.5" /> All ingredients ready
                 </span>
             )}
             
             {/* Substitutions */}
             {substitutableIngredients.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-gray-100">
-                    <span className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
+                <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <span className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium">
                         <RefreshCw className="w-3 h-3" />
                         {substitutableIngredients.length} Swap{substitutableIngredients.length > 1 ? 's' : ''} available
                     </span>
@@ -131,7 +132,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDet
         <div className="mt-auto flex gap-2">
           <button 
              onClick={onViewDetails}
-             className="flex-1 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition flex items-center justify-center gap-2"
+             className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition flex items-center justify-center gap-2"
           >
              <Eye className="w-4 h-4" /> View
           </button>
@@ -139,13 +140,16 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, onShop, onViewDet
           {missingIngredients.length > 0 ? (
             <button 
               onClick={() => onShop(missingIngredients)}
-              className="flex-[1.5] py-2 rounded-xl bg-gray-900 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-gray-800 transition"
+              className="flex-[1.5] py-2 rounded-xl bg-gray-900 dark:bg-gray-700 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-gray-800 dark:hover:bg-gray-600 transition"
             >
               <ShoppingCart className="w-4 h-4" />
               Shop ({missingIngredients.length})
             </button>
           ) : (
-            <button className="flex-[1.5] py-2 rounded-xl bg-emerald-600 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-emerald-700 transition">
+            <button 
+              onClick={onCook}
+              className="flex-[1.5] py-2 rounded-xl bg-emerald-600 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-emerald-700 transition"
+            >
               <ChefHat className="w-4 h-4" />
               Cook
             </button>

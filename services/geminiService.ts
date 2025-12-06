@@ -35,7 +35,12 @@ export const generateRecipes = async (
     : "";
 
   const prompt = `
+    You are an expert Chef specializing in ASIAN CUISINE (East Asian, Southeast Asian, South Asian).
     Suggest 4 distinct recipes for: "${query}".
+    
+    STRICT CONSTRAINT: ONLY generate recipes that are authentically Asian or well-known Asian-Fusion dishes. 
+    If the user requests a non-Asian dish (like "Pizza" or "Burger"), strictly interpret it through an Asian lens (e.g., "Bulgogi Pizza", "Ramen Burger") or default to a popular Asian dish that fits the vibe.
+    
     ${pantryString}
     ${dietString}
     ${allergyString}
@@ -62,7 +67,7 @@ export const generateRecipes = async (
             id: { type: Type.STRING },
             name: { type: Type.STRING },
             description: { type: Type.STRING },
-            cuisine: { type: Type.STRING },
+            cuisine: { type: Type.STRING, description: "Specific Asian cuisine (e.g. Korean, Japanese, Thai)" },
             difficulty: { type: Type.STRING, enum: ["Easy", "Medium", "Hard"] },
             timeMinutes: { type: Type.NUMBER },
             ingredients: {
@@ -106,7 +111,7 @@ export const generateRecipes = async (
 
 export const generateRecipeImage = async (recipeName: string, description: string): Promise<string | null> => {
   const ai = getClient();
-  const prompt = `A professional, appetizing, high-resolution food photography shot of ${recipeName}. ${description}. Studio lighting, 4k, delicious, gourmet plating.`;
+  const prompt = `A professional, appetizing, high-resolution food photography shot of ${recipeName}, an Asian dish. ${description}. Studio lighting, 4k, delicious, gourmet plating.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -143,11 +148,13 @@ export const findStoresForIngredients = async (
   const ai = getClient();
   
   const query = `
-    I need to purchase the following specific ingredients: ${ingredients.join(", ")}.
+    I need to purchase the following Asian ingredients: ${ingredients.join(", ")}.
     
-    Using Google Maps, find the best grocery stores, supermarkets, or specialty markets near me.
+    Using Google Maps, find the best Asian grocery stores, international markets, or supermarkets with good Asian sections near me.
+    Prioritize specialized stores (e.g., H Mart, 99 Ranch, Mitsuwa, Patel Brothers, local Asian markets).
     
-    You MUST provide a detailed item-by-item breakdown for each store found.
+    TASK: Provide a granular inventory breakdown for each store found.
+    For each recommended store, you MUST cross-reference my ingredient list and explicitly state which specific items are likely in stock there.
     
     Structure your response exactly like this:
     
@@ -157,16 +164,16 @@ export const findStoresForIngredients = async (
     ## 📍 Store Details
     
     **1. [Store Name]**
-    *   ✅ **Has**: [List specific ingredients from my request available here]
-    *   ⚠️ **Might Miss**: [List specific ingredients likely not available here]
-    *   💡 **Why**: [e.g. "Large supermarket", "Specialty Asian grocer"]
+    *   ✅ **In Stock**: [Comma-separated list of SPECIFIC ingredients from my request available here]
+    *   ❌ **Missing**: [Specific ingredients from my request likely NOT available here]
+    *   💡 **Notes**: [e.g. "Dedicated Korean market", "Large Asian produce section"]
     
     ... (Repeat for top 3 relevant stores)
     
     CRITICAL INSTRUCTIONS:
-    - Do NOT say "all ingredients" or "most items". List the specific names.
-    - If I need "Gochujang" and you find a general supermarket, check if they likely carry international items. If you find an Asian market, prioritize it for that item.
-    - Ensure EVERY ingredient in my list is covered by at least one store.
+    - Do NOT say "all ingredients" or "most items". List the specific names (e.g., "Gochujang", "Bok Choy").
+    - Be realistic. If a store is a general supermarket, list specialty Asian items as 'Missing' unless it's a known well-stocked location.
+    - Ensure EVERY ingredient in my list is addressed across the store options.
   `;
 
   const response = await ai.models.generateContent({
@@ -198,7 +205,10 @@ export const extractStoreInventory = async (responseText: string): Promise<Saved
   const prompt = `
     Analyze the following text which describes availability of ingredients at various stores.
     Extract structured data about each store and what ingredients they have.
-    Look for sections indicating what is "Available", "In Stock", or what the store "Has".
+    
+    IMPORTANT: For the 'knownIngredients' field, capture strictly the items listed under "In Stock", "Available", or "Has".
+    Do NOT include items listed under "Missing" or "Not Found".
+    
     Normalize the ingredient names.
     
     Text to analyze:

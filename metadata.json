@@ -1,6 +1,6 @@
 {
-  "name": "PantryPal: The Loop Closer",
-  "description": "A smart recipe app that connects your pantry inventory to delicious recipes and local stores for missing ingredients.",
+  "name": "PantryPal: Asian Cuisine Edition",
+  "description": "Your AI-powered guide to cooking authentic Asian dishes and finding the right ingredients at local markets.",
   "requestFramePermissions": [
     "geolocation"
   ]
