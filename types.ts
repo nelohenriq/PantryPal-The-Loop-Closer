@@ -80,6 +80,7 @@ export interface SavedStore {
   lastUpdated: number;
   knownIngredients: string[]; // List of ingredients confirmed to be here
   notes?: string;
+  approved?: boolean; // True if from AI/System, False if user-submitted pending review
 }
 
 export interface UserPreferences {

@@ -386,6 +386,14 @@ export default function App() {
       }
   };
 
+  const handleSuggestStore = (newStore: SavedStore) => {
+    // Add to found stores to show immediately
+    setFoundStores(prev => [...prev, newStore]);
+    // Save to permanent storage
+    const updated = saveStoreData([newStore]);
+    setSavedStores(updated);
+  };
+
   const handleAddBoughtItems = (items: string[]) => {
     items.forEach(item => {
          const clean = normalize(item);
@@ -726,6 +734,7 @@ export default function App() {
           onLogPurchase={handleLogPurchase}
           onChangeLocation={handleUpdateLocation}
           onRefreshLocation={handleRefreshLocation}
+          onSuggestStore={handleSuggestStore}
         />
       )}
 

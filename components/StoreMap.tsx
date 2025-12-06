@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { SavedStore } from '../types';
 import { MapPin, Navigation, ExternalLink, SquareCheck, Plus, ArrowRight, Store, X, Star, Calendar, Filter, LocateFixed, Edit2, Search } from 'lucide-react';
@@ -14,6 +15,7 @@ interface StoreMapProps {
   onLogPurchase: (items: string[]) => void;
   onChangeLocation: (location: string) => void;
   onRefreshLocation: () => void;
+  onSuggestStore: (store: SavedStore) => void; // New prop
 }
 
 export const StoreMap: React.FC<StoreMapProps> = ({ 
@@ -26,7 +28,8 @@ export const StoreMap: React.FC<StoreMapProps> = ({
   onAddToPantry, 
   onLogPurchase,
   onChangeLocation,
-  onRefreshLocation
+  onRefreshLocation,
+  onSuggestStore
 }) => {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [filteredItems, setFilteredItems] = useState<Set<string>>(new Set());
@@ -35,6 +38,12 @@ export const StoreMap: React.FC<StoreMapProps> = ({
   // Location Editing State
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [locationInput, setLocationInput] = useState("");
+
+  // Suggest Store State
+  const [isAddingStore, setIsAddingStore] = useState(false);
+  const [newStoreName, setNewStoreName] = useState("");
+  const [newStoreAddress, setNewStoreAddress] = useState("");
+  const [newStoreNotes, setNewStoreNotes] = useState("");
 
   const toggleCheck = (item: string) => {
     setCheckedItems(prev => {
@@ -68,6 +77,25 @@ export const StoreMap: React.FC<StoreMapProps> = ({
     if (locationInput.trim()) {
       onChangeLocation(locationInput.trim());
       setIsEditingLocation(false);
+    }
+  };
+
+  const handleSuggestSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newStoreName.trim()) {
+        onSuggestStore({
+            name: newStoreName.trim(),
+            address: newStoreAddress.trim(),
+            notes: newStoreNotes.trim(),
+            lastUpdated: Date.now(),
+            knownIngredients: [],
+            approved: false // Mark as pending
+        });
+        setIsAddingStore(false);
+        setNewStoreName("");
+        setNewStoreAddress("");
+        setNewStoreNotes("");
+        alert("Thanks! Your store has been added and is pending approval.");
     }
   };
 
@@ -277,6 +305,12 @@ export const StoreMap: React.FC<StoreMapProps> = ({
                                                 <div className="flex gap-2 items-center">
                                                     <Store className="w-4 h-4" />
                                                     <span className="font-bold text-sm shadow-black drop-shadow-md truncate max-w-[200px]">{store.name}</span>
+                                                    {/* Pending Approval Badge */}
+                                                    {store.approved === false && (
+                                                        <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[9px] rounded uppercase font-bold tracking-wider">
+                                                            Pending
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {store.distance && (
                                                     <span className="text-xs opacity-90 ml-6 flex items-center gap-1">
@@ -365,6 +399,60 @@ export const StoreMap: React.FC<StoreMapProps> = ({
                                     </button>
                                 </div>
                             )}
+
+                             {/* Suggest Store Footer */}
+                             <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                                {!isAddingStore ? (
+                                    <button 
+                                        onClick={() => setIsAddingStore(true)}
+                                        className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition flex items-center justify-center gap-2"
+                                    >
+                                        <Plus className="w-4 h-4" /> Can't find your store? Suggest one
+                                    </button>
+                                ) : (
+                                    <form onSubmit={handleSuggestSubmit} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 animate-in fade-in slide-in-from-bottom-2">
+                                        <h4 className="font-bold text-gray-900 dark:text-white mb-3">Suggest a Local Store</h4>
+                                        <div className="space-y-3">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Store Name *"
+                                                required
+                                                value={newStoreName}
+                                                onChange={(e) => setNewStoreName(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                                            />
+                                            <input 
+                                                type="text" 
+                                                placeholder="Address / City"
+                                                value={newStoreAddress}
+                                                onChange={(e) => setNewStoreAddress(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                                            />
+                                             <textarea 
+                                                placeholder="Notes (e.g. 'Great selection of kimchi')"
+                                                value={newStoreNotes}
+                                                onChange={(e) => setNewStoreNotes(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none h-20"
+                                            />
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setIsAddingStore(false)}
+                                                    className="flex-1 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button 
+                                                    type="submit" 
+                                                    className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700"
+                                                >
+                                                    Submit for Approval
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                )}
+                             </div>
                         </div>
                     </>
                 )}
@@ -390,7 +478,15 @@ export const StoreMap: React.FC<StoreMapProps> = ({
                         <X className="w-5 h-5" />
                     </button>
                     <div className="absolute bottom-4 left-4 text-white">
-                        <h3 className="text-xl font-bold leading-tight">{selectedStore.name}</h3>
+                        <div className="flex items-center gap-2">
+                             <h3 className="text-xl font-bold leading-tight">{selectedStore.name}</h3>
+                             {selectedStore.approved === false && (
+                                <span className="px-2 py-0.5 bg-amber-500 text-white text-[10px] rounded uppercase font-bold tracking-wider">
+                                    Pending
+                                </span>
+                             )}
+                        </div>
+                       
                         <div className="flex gap-2 text-xs mt-1 opacity-90">
                             {selectedStore.rating && <span className="flex items-center gap-0.5"><Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {selectedStore.rating}</span>}
                             {selectedStore.distance && <span>• {selectedStore.distance} away</span>}
