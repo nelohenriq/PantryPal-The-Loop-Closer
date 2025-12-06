@@ -9,15 +9,21 @@ interface PremiumModalProps {
 
 export const PremiumModal: React.FC<PremiumModalProps> = ({ onClose, onUpgrade }) => {
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-amber-200 dark:border-amber-900/50 relative">
+    <div 
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm cursor-pointer"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-amber-200 dark:border-amber-900/50 relative cursor-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Decorative Background */}
         <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-amber-100 to-white dark:from-amber-900/20 dark:to-gray-900 opacity-50 pointer-events-none" />
 
         <button 
           onClick={onClose} 
-          className="absolute top-4 right-4 p-2 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded-full transition z-10"
+          className="absolute top-4 right-4 p-2 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded-full transition z-20 cursor-pointer"
         >
           <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
         </button>

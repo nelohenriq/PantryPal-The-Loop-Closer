@@ -112,6 +112,8 @@ export default function App() {
   
   // Location Override State (e.g. "San Francisco")
   const [locationOverride, setLocationOverride] = useState<string | null>(null);
+  // Detected Location from GPS Search (e.g. "San Jose, CA")
+  const [detectedLocation, setDetectedLocation] = useState<string | null>(null);
 
   // Load stores on mount
   useEffect(() => {
@@ -309,6 +311,7 @@ export default function App() {
     setIsLocatingStores(true);
     setFoundStores([]);
     setStoreSearchText("");
+    setDetectedLocation(null);
 
     const locToUse = manualLocation || locationOverride;
 
@@ -319,8 +322,9 @@ export default function App() {
          setStoreSearchText(result.text);
 
          if (result.text) {
-             const parsedStores = await extractStoreInventory(result.text);
+             const { stores: parsedStores, detectedLocation: detected } = await extractStoreInventory(result.text);
              setFoundStores(parsedStores);
+             if (detected) setDetectedLocation(detected);
              const updated = saveStoreData(parsedStores);
              setSavedStores(updated);
          }
@@ -335,8 +339,9 @@ export default function App() {
                setStoreSearchText(result.text);
 
                if (result.text) {
-                 const parsedStores = await extractStoreInventory(result.text);
+                 const { stores: parsedStores, detectedLocation: detected } = await extractStoreInventory(result.text);
                  setFoundStores(parsedStores);
+                 if (detected) setDetectedLocation(detected);
                  
                  const updated = saveStoreData(parsedStores);
                  setSavedStores(updated);
@@ -715,7 +720,7 @@ export default function App() {
           stores={foundStores}
           summaryText={storeSearchText}
           loading={isLocatingStores}
-          userLocationLabel={locationOverride || "Current Location"}
+          userLocationLabel={locationOverride || detectedLocation || "Current Location"}
           onClose={() => setShowStoreMap(false)}
           onAddToPantry={handleAddBoughtItems}
           onLogPurchase={handleLogPurchase}

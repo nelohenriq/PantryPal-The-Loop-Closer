@@ -1,9 +1,10 @@
 
 import React, { useState, useRef } from 'react';
 import { COMMON_PANTRY_ITEMS } from '../constants';
-import { Plus, X, Search, Camera, LoaderCircle, CircleAlert, CalendarDays, Trash2, Clock, FileSpreadsheet } from 'lucide-react';
+import { Plus, X, Search, Camera, LoaderCircle, CircleAlert, CalendarDays, Trash2, Clock, FileSpreadsheet, ScanBarcode } from 'lucide-react';
 import { parseReceipt } from '../services/geminiService';
 import { PantryItem } from '../types';
+import { BarcodeScanner } from './BarcodeScanner';
 
 interface PantryManagerProps {
   items: PantryItem[];
@@ -16,6 +17,7 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
   const [customInput, setCustomInput] = useState('');
   const [expiryInput, setExpiryInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [itemToRemove, setItemToRemove] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +30,12 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
       setCustomInput('');
       setExpiryInput('');
     }
+  };
+
+  const handleBarcodeDetected = (name: string) => {
+      onAdd(name);
+      setShowBarcodeScanner(false);
+      // alert(`Added ${name} to pantry!`);
   };
 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,6 +160,14 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
           </form>
 
           <div className="flex gap-2">
+             <button
+               onClick={() => setShowBarcodeScanner(true)}
+               className="flex-1 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition flex items-center justify-center gap-2 shadow-sm font-medium text-xs sm:text-sm"
+             >
+                <ScanBarcode className="w-4 h-4" />
+                Barcode
+             </button>
+
              <div className="relative flex-1">
                  <input 
                     type="file" 
@@ -170,7 +186,7 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
                    ) : (
                      <Camera className="w-4 h-4" />
                    )}
-                   Scan Receipt
+                   Receipt
                  </button>
              </div>
 
@@ -267,6 +283,14 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
             Done
           </button>
         </div>
+
+        {/* Barcode Scanner Overlay */}
+        {showBarcodeScanner && (
+            <BarcodeScanner 
+                onDetected={handleBarcodeDetected}
+                onClose={() => setShowBarcodeScanner(false)}
+            />
+        )}
 
         {/* Remove Confirmation Overlay */}
         {itemToRemove && (

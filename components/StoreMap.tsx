@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { SavedStore } from '../types';
 import { MapPin, Navigation, ExternalLink, SquareCheck, Plus, ArrowRight, Store, X, Star, Calendar, Filter, LocateFixed, Edit2, Search } from 'lucide-react';
@@ -84,7 +83,7 @@ export const StoreMap: React.FC<StoreMapProps> = ({
     return stores.filter(store => {
       // The store must have ALL selected filter items
       return Array.from(filteredItems).every(filterItem => {
-        return (store.knownIngredients as string[]).some((known: string) => 
+        return ((store.knownIngredients || []) as string[]).some((known: string) => 
            // Use fuzzy match or simple inclusion
            isIngredientMatch(filterItem, known) || 
            known.toLowerCase().includes(filterItem.toLowerCase()) ||
@@ -305,7 +304,7 @@ export const StoreMap: React.FC<StoreMapProps> = ({
                                             {/* Inventory Snippet */}
                                             {store.knownIngredients.length > 0 && (
                                                 <div className="mt-2 flex flex-wrap gap-1">
-                                                    {(store.knownIngredients as string[]).map((item: string, i) => {
+                                                    {((store.knownIngredients || []) as string[]).map((item: string, i) => {
                                                         // Highlight if matches filter
                                                         const isMatch = Array.from(filteredItems).some(f => 
                                                             isIngredientMatch(f, item) || 

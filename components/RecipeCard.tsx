@@ -46,22 +46,29 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userR
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    
     const shareData = {
       title: `PantryPal: ${recipe.name}`,
       text: `Check out this recipe for ${recipe.name}: ${recipe.description}\n\nCook time: ${recipe.timeMinutes}m\nDifficulty: ${recipe.difficulty}`,
-      url: window.location.href // In a real app, this would be a deep link
+      url: window.location.href 
     };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        // User cancelled
-      }
-    } else {
-      // Fallback
-      navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
-      alert("Recipe details copied to clipboard!");
+    try {
+        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+        } else {
+            // Fallback to clipboard
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+                alert("Recipe details copied to clipboard!");
+            } else {
+                throw new Error("Clipboard not supported");
+            }
+        }
+    } catch (err) {
+        console.error("Share failed:", err);
+        // Fallback for when clipboard API fails (e.g. non-secure context) or share fails
+        alert("Could not share. You might need to be on HTTPS or a supported browser.");
     }
   };
 
@@ -71,6 +78,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userR
       {/* Top Action Buttons */}
       <div className="absolute top-3 left-3 z-20 flex gap-2">
         <button 
+            type="button"
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
             className="p-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 transition"
             title={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -78,6 +86,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userR
             <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-500 dark:text-gray-400'}`} />
         </button>
         <button 
+            type="button"
             onClick={handleShare}
             className="p-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 transition text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
             title="Share recipe"
@@ -128,6 +137,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userR
              {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); onRate(star); }}
                   className="focus:outline-none transition-transform hover:scale-110"
                 >
@@ -192,6 +202,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userR
         {/* Action Buttons */}
         <div className="mt-auto flex gap-2">
           <button 
+             type="button"
              onClick={onViewDetails}
              className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition flex items-center justify-center gap-2"
           >
@@ -200,6 +211,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userR
           
           {missingIngredients.length > 0 ? (
             <button 
+              type="button"
               onClick={() => onShop(missingIngredients)}
               className="flex-[1.5] py-2 rounded-xl bg-gray-900 dark:bg-gray-700 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-gray-800 dark:hover:bg-gray-600 transition"
             >
@@ -208,6 +220,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userR
             </button>
           ) : (
             <button 
+              type="button"
               onClick={onCook}
               className="flex-[1.5] py-2 rounded-xl bg-emerald-600 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-emerald-700 transition"
             >

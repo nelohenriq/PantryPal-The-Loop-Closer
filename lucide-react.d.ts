@@ -54,4 +54,5 @@ declare module 'lucide-react' {
   export const Share2: Icon;
   export const LocateFixed: Icon;
   export const Edit2: Icon;
+  export const ScanBarcode: Icon;
 }

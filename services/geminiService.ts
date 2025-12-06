@@ -207,6 +207,8 @@ export const findStoresForIngredients = async (
     
     TASK: Provide a granular inventory breakdown for each store found, detailed store info, AND the distance.
     
+    IMPORTANT: Start your response by explicitly stating the location area you are searching in (e.g. "Searching for stores in San Francisco, CA..." or "Searching near 90210...").
+    
     Structure your response exactly like this:
     
     ## 🗺️ Trip Plan
@@ -240,12 +242,13 @@ export const findStoresForIngredients = async (
   };
 };
 
-export const extractStoreInventory = async (responseText: string): Promise<SavedStore[]> => {
+export const extractStoreInventory = async (responseText: string): Promise<{ stores: SavedStore[], detectedLocation: string }> => {
   const ai = getClient();
 
   const prompt = `
     Analyze the following text which describes availability of ingredients at various stores.
     Extract structured data about each store including its address, rating, distance, and inventory.
+    Also extract the "detectedLocation" which is the city/area name mentioned in the text as the search context (e.g. "San Francisco, CA").
     
     IMPORTANT: 
     - For 'knownIngredients', capture strictly the items listed under "In Stock", "Available", or "Has".
@@ -264,37 +267,47 @@ export const extractStoreInventory = async (responseText: string): Promise<Saved
     config: {
       responseMimeType: "application/json",
       responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING },
-            address: { type: Type.STRING },
-            distance: { type: Type.STRING },
-            rating: { type: Type.NUMBER },
-            knownIngredients: { type: Type.ARRAY, items: { type: Type.STRING } },
-            notes: { type: Type.STRING }
-          }
+        type: Type.OBJECT,
+        properties: {
+            detectedLocation: { type: Type.STRING, description: "The city/area extracted from the text, e.g. 'San Jose, CA'" },
+            stores: {
+                type: Type.ARRAY,
+                items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    address: { type: Type.STRING },
+                    distance: { type: Type.STRING },
+                    rating: { type: Type.NUMBER },
+                    knownIngredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    notes: { type: Type.STRING }
+                }
+                }
+            }
         }
       }
     }
   });
 
   const text = response.text;
-  if (!text) return [];
+  if (!text) return { stores: [], detectedLocation: "" };
 
   try {
     const raw = JSON.parse(text);
-    // Add timestamps and a placeholder image if we don't have one
-    return raw.map((r: any) => ({
+    const stores = (raw.stores || []).map((r: any) => ({
       ...r,
       lastUpdated: Date.now(),
       // Use a consistent, reliable placeholder service
       imageUrl: `https://placehold.co/600x400/e2e8f0/475569?text=${encodeURIComponent(r.name)}`
     }));
+
+    return {
+        stores,
+        detectedLocation: raw.detectedLocation || ""
+    };
   } catch (e) {
     console.error("Failed to parse store inventory", e);
-    return [];
+    return { stores: [], detectedLocation: "" };
   }
 };
 
