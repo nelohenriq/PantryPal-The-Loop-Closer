@@ -1,19 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { RecipeMatch, Ingredient } from '../types';
-import { X, CircleCheck, CircleAlert, RefreshCw, ShoppingCart, Clock, ChefHat, Check, PlayCircle, Flame, Activity, LoaderCircle, ExternalLink } from 'lucide-react';
+import { X, CircleCheck, CircleAlert, RefreshCw, ShoppingCart, Clock, ChefHat, Check, PlayCircle, Flame, Activity, LoaderCircle, ExternalLink, Lightbulb, Star } from 'lucide-react';
 import { CookingMode } from './CookingMode';
 import { generateRecipeImage } from '../services/geminiService';
 
 interface RecipeDetailModalProps {
   match: RecipeMatch;
+  userRating?: number;
   onClose: () => void;
   onShop: (missing: Ingredient[]) => void;
   initialCookingMode?: boolean;
-  onCompleteCooking?: () => void; // New prop for analytics hook
+  onCompleteCooking?: () => void;
+  onRate: (rating: number) => void;
 }
 
-export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, onClose, onShop, initialCookingMode = false, onCompleteCooking }) => {
+export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, userRating, onClose, onShop, initialCookingMode = false, onCompleteCooking, onRate }) => {
   const [showCookingMode, setShowCookingMode] = useState(initialCookingMode);
   const [imageUrl, setImageUrl] = useState<string | null>(match.recipe.imageUrl || null);
   const [loadingImage, setLoadingImage] = useState(false);
@@ -83,7 +85,29 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, onC
                <X className="w-5 h-5" />
              </button>
              <div className="absolute bottom-0 left-0 p-6 text-white w-full">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-2 shadow-black drop-shadow-md">{recipe.name}</h2>
+                <div className="flex justify-between items-end">
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2 shadow-black drop-shadow-md">{recipe.name}</h2>
+                    
+                    {/* Rating UI */}
+                    <div className="flex gap-1 mb-3 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full">
+                         {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                            key={star}
+                            onClick={() => onRate(star)}
+                            className="focus:outline-none transition-transform hover:scale-110"
+                            >
+                            <Star 
+                                className={`w-5 h-5 ${
+                                    (userRating || 0) >= star 
+                                    ? 'fill-amber-400 text-amber-400' 
+                                    : 'text-gray-300/50'
+                                }`} 
+                            />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                
                 <div className="flex items-center gap-4 text-sm font-medium">
                   <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {recipe.timeMinutes} min</span>
                   <span className="flex items-center gap-1.5"><ChefHat className="w-4 h-4" /> {recipe.difficulty}</span>
@@ -115,6 +139,23 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, onC
                         <p className="font-bold text-gray-900 dark:text-white">{recipe.nutrition.fat}</p>
                     </div>
                  </div>
+             )}
+
+             {/* Chef's Tips Section */}
+             {recipe.tips && recipe.tips.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-xl border border-amber-100 dark:border-amber-800/30">
+                   <h3 className="text-sm font-bold text-amber-800 dark:text-amber-400 mb-3 flex items-center gap-2 uppercase tracking-wide">
+                      <Lightbulb className="w-4 h-4" /> Chef's Tips
+                   </h3>
+                   <ul className="space-y-2">
+                      {recipe.tips.map((tip, idx) => (
+                         <li key={idx} className="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <span className="text-amber-500 font-bold">•</span>
+                            {tip}
+                         </li>
+                      ))}
+                   </ul>
+                </div>
              )}
 
              {/* Ingredients Section */}
@@ -179,9 +220,21 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, onC
                                           <div>
                                              <p className="font-semibold text-gray-900 dark:text-white">{ing.name}</p>
                                              <p className="text-sm text-gray-500 dark:text-gray-400">{ing.quantity}</p>
-                                             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium bg-amber-100/50 dark:bg-amber-900/40 px-2 py-0.5 rounded-md inline-block">
-                                                Use pantry substitute
-                                             </p>
+                                             
+                                             {/* Sub Details */}
+                                             {ing.substitutes && ing.substitutes.length > 0 ? (
+                                                <div className="mt-1.5 text-xs text-amber-700 dark:text-amber-300 bg-amber-100/50 dark:bg-amber-900/40 p-2 rounded-lg">
+                                                    <p className="font-medium flex items-center gap-1">
+                                                        <span className="text-amber-500">↳</span> Try: {ing.substitutes[0].name}
+                                                    </p>
+                                                    {ing.substitutes[0].quantity && <p className="ml-4 opacity-80">Qty: {ing.substitutes[0].quantity}</p>}
+                                                    {ing.substitutes[0].note && <p className="ml-4 opacity-80 italic">"{ing.substitutes[0].note}"</p>}
+                                                </div>
+                                             ) : (
+                                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium bg-amber-100/50 dark:bg-amber-900/40 px-2 py-0.5 rounded-md inline-block">
+                                                    Use pantry substitute
+                                                </p>
+                                             )}
                                           </div>
                                        </div>
                                     </div>

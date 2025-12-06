@@ -1,18 +1,20 @@
 
 import React from 'react';
 import { RecipeMatch, Ingredient } from '../types';
-import { Clock, ChefHat, ShoppingCart, CircleCheck, RefreshCw, Eye, Flame, Heart } from 'lucide-react';
+import { Clock, ChefHat, ShoppingCart, CircleCheck, RefreshCw, Eye, Flame, Heart, Star, Share2 } from 'lucide-react';
 
 interface RecipeCardProps {
   match: RecipeMatch;
   isFavorite: boolean;
+  userRating?: number;
   onShop: (missing: Ingredient[]) => void;
   onViewDetails: () => void;
   onCook: () => void;
   onToggleFavorite: () => void;
+  onRate: (rating: number) => void;
 }
 
-export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, onShop, onViewDetails, onCook, onToggleFavorite }) => {
+export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userRating, onShop, onViewDetails, onCook, onToggleFavorite, onRate }) => {
   const { recipe, matchScore, missingIngredients, substitutableIngredients } = match;
   
   // Format score as percentage
@@ -42,16 +44,47 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, onSho
   const displayCategories = sortedCategories.slice(0, 3); // Show max 3 categories
   const hiddenCount = missingIngredients.length - displayCategories.reduce((sum, cat) => sum + groupedMissing[cat].length, 0);
 
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareData = {
+      title: `PantryPal: ${recipe.name}`,
+      text: `Check out this recipe for ${recipe.name}: ${recipe.description}\n\nCook time: ${recipe.timeMinutes}m\nDifficulty: ${recipe.difficulty}`,
+      url: window.location.href // In a real app, this would be a deep link
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled
+      }
+    } else {
+      // Fallback
+      navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+      alert("Recipe details copied to clipboard!");
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col h-full hover:shadow-md transition duration-300 group relative">
       
-      {/* Favorite Button */}
-      <button 
-        onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
-        className="absolute top-3 left-3 z-20 p-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 transition"
-      >
-        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-500 dark:text-gray-400'}`} />
-      </button>
+      {/* Top Action Buttons */}
+      <div className="absolute top-3 left-3 z-20 flex gap-2">
+        <button 
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+            className="p-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 transition"
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-500 dark:text-gray-400'}`} />
+        </button>
+        <button 
+            onClick={handleShare}
+            className="p-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 transition text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
+            title="Share recipe"
+        >
+            <Share2 className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* Image Placeholder */}
       <div 
@@ -89,7 +122,25 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, onSho
              <ChefHat className="w-3.5 h-3.5" />
              {scorePercent}% Match
            </div>
-           <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">{recipe.difficulty}</span>
+           
+           {/* Rating Stars */}
+           <div className="flex gap-0.5">
+             {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={(e) => { e.stopPropagation(); onRate(star); }}
+                  className="focus:outline-none transition-transform hover:scale-110"
+                >
+                  <Star 
+                    className={`w-3.5 h-3.5 ${
+                        (userRating || 0) >= star 
+                        ? 'fill-amber-400 text-amber-400' 
+                        : 'text-gray-300 dark:text-gray-600'
+                    }`} 
+                  />
+                </button>
+             ))}
+           </div>
         </div>
 
         {/* Progress Bar */}

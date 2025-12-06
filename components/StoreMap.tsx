@@ -1,25 +1,53 @@
 
-import React, { useState } from 'react';
-import { GroundingChunk } from '../types';
-import { MapPin, Navigation, ExternalLink, SquareCheck, Plus, ArrowRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { SavedStore } from '../types';
+import { MapPin, Navigation, ExternalLink, SquareCheck, Plus, ArrowRight, Store, X, Star, Calendar, Filter, LocateFixed, Edit2, Search } from 'lucide-react';
+import { isIngredientMatch } from '../utils/ingredientMatching';
 
 interface StoreMapProps {
   missingIngredients: string[];
-  storeData: { text: string; chunks: GroundingChunk[] } | null;
+  stores: SavedStore[];
+  summaryText?: string;
   loading: boolean;
+  userLocationLabel?: string; // e.g. "Current Location" or "Chicago, IL"
   onClose: () => void;
   onAddToPantry: (items: string[]) => void;
-  onLogPurchase: (items: string[]) => void; // New prop for analytics
+  onLogPurchase: (items: string[]) => void;
+  onChangeLocation: (location: string) => void;
+  onRefreshLocation: () => void;
 }
 
-export const StoreMap: React.FC<StoreMapProps> = ({ missingIngredients, storeData, loading, onClose, onAddToPantry, onLogPurchase }) => {
+export const StoreMap: React.FC<StoreMapProps> = ({ 
+  missingIngredients, 
+  stores, 
+  summaryText, 
+  loading, 
+  userLocationLabel = "Current Location",
+  onClose, 
+  onAddToPantry, 
+  onLogPurchase,
+  onChangeLocation,
+  onRefreshLocation
+}) => {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
-
-  // Extract Map items from chunks
-  const mapItems = storeData?.chunks.filter(c => c.maps) || [];
+  const [filteredItems, setFilteredItems] = useState<Set<string>>(new Set());
+  const [selectedStore, setSelectedStore] = useState<SavedStore | null>(null);
+  
+  // Location Editing State
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
+  const [locationInput, setLocationInput] = useState("");
 
   const toggleCheck = (item: string) => {
     setCheckedItems(prev => {
+        const next = new Set(prev);
+        if (next.has(item)) next.delete(item);
+        else next.add(item);
+        return next;
+    });
+  };
+
+  const toggleFilter = (item: string) => {
+    setFilteredItems(prev => {
         const next = new Set(prev);
         if (next.has(item)) next.delete(item);
         else next.add(item);
@@ -31,19 +59,87 @@ export const StoreMap: React.FC<StoreMapProps> = ({ missingIngredients, storeDat
     if (checkedItems.size > 0) {
         const itemsArray = Array.from(checkedItems);
         onAddToPantry(itemsArray);
-        onLogPurchase(itemsArray); // Log analytics
+        onLogPurchase(itemsArray); 
     }
     onClose();
   };
+
+  const handleLocationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (locationInput.trim()) {
+      onChangeLocation(locationInput.trim());
+      setIsEditingLocation(false);
+    }
+  };
+
+  const getDirectionsUrl = (store: SavedStore) => {
+    const query = store.address ? encodeURIComponent(store.address) : encodeURIComponent(store.name);
+    return `https://www.google.com/maps/dir/?api=1&destination=${query}`;
+  };
+
+  // Filter stores based on selected ingredients
+  const visibleStores = useMemo(() => {
+    if (filteredItems.size === 0) return stores;
+
+    return stores.filter(store => {
+      // The store must have ALL selected filter items
+      return Array.from(filteredItems).every(filterItem => {
+        return (store.knownIngredients as string[]).some((known: string) => 
+           // Use fuzzy match or simple inclusion
+           isIngredientMatch(filterItem, known) || 
+           known.toLowerCase().includes(filterItem.toLowerCase()) ||
+           filterItem.toLowerCase().includes(known.toLowerCase())
+        );
+      });
+    });
+  }, [stores, filteredItems]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 sm:rounded-none">
       
       {/* Header */}
-      <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shadow-sm z-10 bg-white dark:bg-gray-900">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Shopping Trip</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Locating items for your recipe</p>
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shadow-sm z-10 bg-white dark:bg-gray-900">
+        <div className="flex flex-col">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">Shopping Trip</h2>
+          <div className="flex items-center gap-2 mt-1">
+             <MapPin className="w-3 h-3 text-emerald-500" />
+             {isEditingLocation ? (
+               <form onSubmit={handleLocationSubmit} className="flex items-center gap-1">
+                 <input 
+                   type="text" 
+                   value={locationInput}
+                   onChange={(e) => setLocationInput(e.target.value)}
+                   placeholder="City, Zip..."
+                   className="text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 w-32 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-emerald-500"
+                   autoFocus
+                 />
+                 <button type="submit" className="bg-emerald-500 text-white p-0.5 rounded hover:bg-emerald-600">
+                   <ArrowRight className="w-3 h-3" />
+                 </button>
+                 <button type="button" onClick={() => setIsEditingLocation(false)} className="text-gray-400 hover:text-gray-600">
+                   <X className="w-3 h-3" />
+                 </button>
+               </form>
+             ) : (
+               <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                 Near <span className="font-semibold text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400">{userLocationLabel}</span>
+                 <button 
+                   onClick={() => { setLocationInput(""); setIsEditingLocation(true); }}
+                   className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-blue-500"
+                   title="Change Search Area"
+                 >
+                   <Edit2 className="w-3 h-3" />
+                 </button>
+                 <button 
+                   onClick={onRefreshLocation}
+                   className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-emerald-500"
+                   title="Use Current GPS Location"
+                 >
+                   <LocateFixed className="w-3 h-3" />
+                 </button>
+               </span>
+             )}
+          </div>
         </div>
         <button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
           Close
@@ -59,37 +155,52 @@ export const StoreMap: React.FC<StoreMapProps> = ({ missingIngredients, storeDat
                     <SquareCheck className="w-5 h-5 text-emerald-600" />
                     Shopping Checklist
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Check items off as you buy them. We'll add them to your pantry when you finish!
-                </p>
                 
                 <div className="space-y-2">
                     {missingIngredients.map(ing => {
                         const isChecked = checkedItems.has(ing);
+                        const isFiltered = filteredItems.has(ing);
+                        
                         return (
-                            <label 
+                            <div 
                                 key={ing} 
-                                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                                className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
                                     isChecked 
                                     ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 opacity-75' 
                                     : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-sm'
                                 }`}
                             >
-                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
-                                    isChecked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
-                                }`}>
-                                    {isChecked && <Plus className="w-3.5 h-3.5 text-white" />}
+                                {/* Checkbox for "Bought" */}
+                                <button
+                                    onClick={() => toggleCheck(ing)}
+                                    className={`w-8 h-8 shrink-0 rounded-lg border flex items-center justify-center transition-colors ${
+                                        isChecked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                    }`}
+                                    title="Mark as bought"
+                                >
+                                    {isChecked && <Plus className="w-4 h-4 text-white" />}
+                                </button>
+
+                                {/* Item Name (Click to Filter) */}
+                                <div className="flex-1 min-w-0">
+                                    <span className={`block text-sm font-medium truncate ${isChecked ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-gray-200'}`}>
+                                        {ing}
+                                    </span>
                                 </div>
-                                <input 
-                                    type="checkbox" 
-                                    checked={isChecked}
-                                    onChange={() => toggleCheck(ing)}
-                                    className="hidden"
-                                />
-                                <span className={`font-medium ${isChecked ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-gray-200'}`}>
-                                    {ing}
-                                </span>
-                            </label>
+
+                                {/* Filter Toggle */}
+                                <button
+                                    onClick={() => toggleFilter(ing)}
+                                    className={`p-1.5 rounded-lg transition-colors ${
+                                        isFiltered 
+                                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-900' 
+                                            : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                    }`}
+                                    title={isFiltered ? "Remove filter" : "Filter stores by this item"}
+                                >
+                                    <Filter className="w-4 h-4" />
+                                </button>
+                            </div>
                         );
                     })}
                 </div>
@@ -111,66 +222,148 @@ export const StoreMap: React.FC<StoreMapProps> = ({ missingIngredients, storeDat
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400 animate-pulse">
                         <MapPin className="w-12 h-12 mb-4 text-emerald-500 opacity-50" />
-                        <p>Scouting local stores...</p>
-                        <span className="text-xs mt-2 text-gray-400 dark:text-gray-500">Powered by Google Maps Grounding</span>
+                        <p className="text-lg font-medium">Scouting local stores...</p>
+                        <p className="text-sm mt-1">Searching near {userLocationLabel}</p>
+                        <span className="text-xs mt-4 text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                          <Star className="w-3 h-3" /> Powered by Google Maps Grounding
+                        </span>
                     </div>
                 ) : (
                     <>
-                        {/* AI Summary */}
-                        {storeData?.text && (
+                        {/* Filter Status */}
+                        {filteredItems.size > 0 && (
+                            <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-900/50">
+                                <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-300 font-medium">
+                                    <Filter className="w-4 h-4" />
+                                    Filtering by: {Array.from(filteredItems).join(', ')}
+                                </div>
+                                <button 
+                                    onClick={() => setFilteredItems(new Set())}
+                                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                >
+                                    <X className="w-3 h-3" /> Clear
+                                </button>
+                            </div>
+                        )}
+
+                        {/* AI Summary (Only show if not filtering, or shorten it) */}
+                        {summaryText && filteredItems.size === 0 && (
                             <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-emerald-900 dark:text-emerald-300 text-sm leading-relaxed whitespace-pre-wrap">
-                                {storeData.text}
+                                {summaryText}
                             </div>
                         )}
 
                         {/* Store Cards */}
                         <div className="space-y-3">
-                            <h3 className="text-sm font-bold text-gray-900 dark:text-white mt-4">Suggested Locations</h3>
-                            {mapItems.length > 0 ? (
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white mt-4 flex justify-between items-center">
+                                <span>Suggested Locations</span>
+                                <span className="text-xs font-normal text-gray-500">Showing {visibleStores.length} of {stores.length}</span>
+                            </h3>
+                            
+                            {visibleStores.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {mapItems.map((chunk, idx) => (
-                                    <div key={idx} className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col gap-2 hover:shadow-md transition">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex gap-3">
-                                                <div className="bg-blue-100 dark:bg-blue-900/40 p-2 rounded-lg h-fit">
-                                                    <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                {visibleStores.map((store, idx) => {
+                                    return (
+                                    <div key={idx} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col overflow-hidden hover:shadow-md transition group">
+                                        {/* Store Image Placeholder */}
+                                        <div className="h-32 w-full bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
+                                            <img 
+                                                src={store.imageUrl || `https://placehold.co/600x300/e2e8f0/475569?text=${encodeURIComponent(store.name)}`}
+                                                alt={store.name}
+                                                className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500"
+                                                loading="lazy"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                                            <div className="absolute bottom-3 left-3 flex flex-col text-white">
+                                                <div className="flex gap-2 items-center">
+                                                    <Store className="w-4 h-4" />
+                                                    <span className="font-bold text-sm shadow-black drop-shadow-md truncate max-w-[200px]">{store.name}</span>
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{chunk.maps?.title}</h4>
-                                                    {/* If we had review snippets, we could show them here */}
-                                                    {chunk.maps?.placeAnswerSources?.reviewSnippets?.[0] && (
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 italic">
-                                                            "{chunk.maps.placeAnswerSources.reviewSnippets[0].snippet}"
-                                                        </p>
+                                                {store.distance && (
+                                                    <span className="text-xs opacity-90 ml-6 flex items-center gap-1">
+                                                        🚗 {store.distance}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {store.rating && (
+                                                <div className="absolute top-2 right-2 px-2 py-0.5 bg-white/90 dark:bg-black/80 rounded text-[10px] font-bold flex items-center gap-1 backdrop-blur-sm shadow-sm">
+                                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                                    {store.rating}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="p-4 flex flex-col gap-2 flex-1">
+                                            {/* Address */}
+                                            {store.address && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5 line-clamp-2">
+                                                    <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                    {store.address}
+                                                </p>
+                                            )}
+                                            
+                                            {/* Inventory Snippet */}
+                                            {store.knownIngredients.length > 0 && (
+                                                <div className="mt-2 flex flex-wrap gap-1">
+                                                    {(store.knownIngredients as string[]).map((item: string, i) => {
+                                                        // Highlight if matches filter
+                                                        const isMatch = Array.from(filteredItems).some(f => 
+                                                            isIngredientMatch(f, item) || 
+                                                            item.toLowerCase().includes(f.toLowerCase())
+                                                        );
+                                                        
+                                                        // Only show first 3 unless matching
+                                                        if (!isMatch && i > 3 && !filteredItems.size) return null;
+
+                                                        return (
+                                                            <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                                                isMatch 
+                                                                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800'
+                                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                                            }`}>
+                                                                {item}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                    {store.knownIngredients.length > 3 && filteredItems.size === 0 && (
+                                                        <span className="text-[10px] px-1.5 py-0.5 text-gray-400">
+                                                            +{store.knownIngredients.length - 3} more
+                                                        </span>
                                                     )}
                                                 </div>
+                                            )}
+                                            
+                                            <div className="flex gap-2 mt-auto pt-3">
+                                                <button 
+                                                    onClick={() => setSelectedStore(store)}
+                                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" /> View Info
+                                                </button>
+                                                <a 
+                                                    href={getDirectionsUrl(store)}
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                                                >
+                                                    <Navigation className="w-4 h-4" /> Directions
+                                                </a>
                                             </div>
                                         </div>
-                                        
-                                        <div className="flex gap-2 mt-auto pt-3 border-t border-gray-50 dark:border-gray-800">
-                                            <a 
-                                                href={chunk.maps?.uri} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="flex-1 flex items-center justify-center gap-2 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                                            >
-                                                <ExternalLink className="w-4 h-4" /> View
-                                            </a>
-                                            <a 
-                                                href={chunk.maps?.uri} // In a real app, this would be a specific directions link
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-                                            >
-                                                <Navigation className="w-4 h-4" /> Go
-                                            </a>
-                                        </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                                 </div>
                             ) : (
-                                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                                    <p>No specific map locations returned. Try a different query.</p>
+                                <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">
+                                    <Store className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                                    <p className="text-gray-500 dark:text-gray-400 font-medium">No stores match your filters.</p>
+                                    <button 
+                                        onClick={() => setFilteredItems(new Set())}
+                                        className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                        Clear filters
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -179,6 +372,76 @@ export const StoreMap: React.FC<StoreMapProps> = ({ missingIngredients, storeDat
             </div>
         </div>
       </div>
+
+      {/* Store Info Modal */}
+      {selectedStore && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col max-h-[80vh]">
+                <div className="h-32 bg-gray-200 dark:bg-gray-800 relative">
+                     <img 
+                        src={selectedStore.imageUrl || `https://placehold.co/600x300/e2e8f0/475569?text=${encodeURIComponent(selectedStore.name)}`}
+                        alt={selectedStore.name}
+                        className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                    <button 
+                        onClick={() => setSelectedStore(null)}
+                        className="absolute top-3 right-3 p-1.5 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                    <div className="absolute bottom-4 left-4 text-white">
+                        <h3 className="text-xl font-bold leading-tight">{selectedStore.name}</h3>
+                        <div className="flex gap-2 text-xs mt-1 opacity-90">
+                            {selectedStore.rating && <span className="flex items-center gap-0.5"><Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {selectedStore.rating}</span>}
+                            {selectedStore.distance && <span>• {selectedStore.distance} away</span>}
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="p-6 overflow-y-auto flex-1 bg-white dark:bg-gray-900">
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                            <MapPin className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                            <p className="text-sm text-gray-700 dark:text-gray-300">{selectedStore.address || "Address not available"}</p>
+                        </div>
+
+                        {selectedStore.notes && (
+                             <div className="p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-xl">
+                                <p className="text-sm text-amber-800 dark:text-amber-400 italic">"{selectedStore.notes}"</p>
+                             </div>
+                        )}
+
+                        <div>
+                            <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Inventory Check</h4>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedStore.knownIngredients.length > 0 ? (
+                                    (selectedStore.knownIngredients as string[]).map((item: string, i) => (
+                                        <span key={i} className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-md border border-emerald-100 dark:border-emerald-900/30 text-xs font-medium">
+                                            {item}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-gray-400 italic">No specific inventory details available.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+                    <a 
+                        href={getDirectionsUrl(selectedStore)}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                    >
+                        <Navigation className="w-5 h-5" /> Get Directions on Maps
+                    </a>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };

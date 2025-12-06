@@ -3,7 +3,11 @@ export interface Ingredient {
   name: string;
   quantity: string;
   category?: string;
-  substitutes?: string[];
+  substitutes?: {
+    name: string;
+    quantity?: string;
+    note?: string;
+  }[];
 }
 
 export interface Nutrition {
@@ -22,6 +26,7 @@ export interface Recipe {
   timeMinutes: number;
   ingredients: Ingredient[];
   instructions: string[];
+  tips?: string[];
   nutrition: Nutrition;
   imageUrl?: string;
 }
@@ -67,13 +72,18 @@ export interface GroundingChunk {
 
 export interface SavedStore {
   name: string;
+  address?: string; 
+  placeId?: string; 
+  imageUrl?: string; 
+  rating?: number; 
+  distance?: string; // New field for distance string (e.g. "1.2 miles")
   lastUpdated: number;
   knownIngredients: string[]; // List of ingredients confirmed to be here
   notes?: string;
 }
 
 export interface UserPreferences {
-  isPremium?: boolean; // NEW: Track subscription status
+  isPremium?: boolean; // Track subscription status
   dietary: {
     vegan: boolean;
     vegetarian: boolean;
@@ -85,6 +95,7 @@ export interface UserPreferences {
     maxCaloriesPerServing?: number;
     minProteinPerServing?: number; // in grams
   };
+  ratings: Record<string, number>; // Map of recipeId -> rating (1-5)
 }
 
 // Analytics Types

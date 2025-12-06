@@ -68,9 +68,10 @@ export const generateRecipes = async (
     1. Prioritize recipes that utilize the user's existing pantry ingredients where possible.
     2. For EVERY ingredient, you MUST assign a specific category (e.g., Produce, Meat, Dairy, Pantry, Spices, Bakery).
     3. For EVERY ingredient, you MUST provide a list of potential substitutes if applicable.
-    4. Estimate nutritional values (Calories, Protein, Carbs, Fat) for one serving.
-    5. Ensure quantities are precise.
-    6. STRICTLY adhere to the dietary restrictions and allergies provided.
+    4. Provide expert "Chef's Tips" for preparation or cooking techniques.
+    5. Estimate nutritional values (Calories, Protein, Carbs, Fat) for one serving.
+    6. Ensure quantities are precise.
+    7. STRICTLY adhere to the dietary restrictions and allergies provided.
   `;
 
   const response = await ai.models.generateContent({
@@ -97,11 +98,23 @@ export const generateRecipes = async (
                   name: { type: Type.STRING },
                   quantity: { type: Type.STRING },
                   category: { type: Type.STRING, description: "Category (e.g. Produce, Meat, Dairy, Spices)" },
-                  substitutes: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of valid substitutes" }
+                  substitutes: { 
+                      type: Type.ARRAY, 
+                      items: { 
+                          type: Type.OBJECT,
+                          properties: {
+                              name: { type: Type.STRING },
+                              quantity: { type: Type.STRING },
+                              note: { type: Type.STRING }
+                          }
+                      },
+                      description: "List of valid substitutes" 
+                  }
                 }
               }
             },
             instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            tips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Expert cooking tips" },
             nutrition: {
                 type: Type.OBJECT,
                 properties: {
@@ -162,18 +175,37 @@ export interface StoreSearchResponse {
 
 export const findStoresForIngredients = async (
   ingredients: string[], 
-  location: { lat: number, lng: number }
+  location: { lat: number, lng: number } | string
 ): Promise<StoreSearchResponse> => {
   const ai = getClient();
+  
+  let locationString = "";
+  let retrievalConfig = undefined;
+
+  if (typeof location === 'string') {
+    // Manual location text
+    locationString = `near ${location}`;
+    // When using text, we rely on the prompt context, or we could leave retrievalConfig undefined
+    // For 'googleMaps' tool, it strongly prefers latLng if available. 
+    // If we only have text, we omit retrievalConfig so it infers from prompt.
+  } else {
+    // Coordinates
+    locationString = `near me (Lat: ${location.lat}, Lng: ${location.lng})`;
+    retrievalConfig = {
+      latLng: {
+        latitude: location.lat,
+        longitude: location.lng
+      }
+    };
+  }
   
   const query = `
     I need to purchase the following Asian ingredients: ${ingredients.join(", ")}.
     
-    Using Google Maps, find the best Asian grocery stores, international markets, or supermarkets with good Asian sections near me.
+    Using Google Maps, find the best Asian grocery stores, international markets, or supermarkets with good Asian sections ${locationString}.
     Prioritize specialized stores (e.g., H Mart, 99 Ranch, Mitsuwa, Patel Brothers, local Asian markets).
     
-    TASK: Provide a granular inventory breakdown for each store found.
-    For each recommended store, you MUST cross-reference my ingredient list and explicitly state which specific items are likely in stock there.
+    TASK: Provide a granular inventory breakdown for each store found, detailed store info, AND the distance.
     
     Structure your response exactly like this:
     
@@ -183,16 +215,14 @@ export const findStoresForIngredients = async (
     ## 📍 Store Details
     
     **1. [Store Name]**
+    *   🏠 **Address**: [Full address]
+    *   🚗 **Distance**: [Approximate driving distance]
+    *   ⭐ **Rating**: [Rating]/5
     *   ✅ **In Stock**: [Comma-separated list of SPECIFIC ingredients from my request available here]
     *   ❌ **Missing**: [Specific ingredients from my request likely NOT available here]
     *   💡 **Notes**: [e.g. "Dedicated Korean market", "Large Asian produce section"]
     
     ... (Repeat for top 3 relevant stores)
-    
-    CRITICAL INSTRUCTIONS:
-    - Do NOT say "all ingredients" or "most items". List the specific names (e.g., "Gochujang", "Bok Choy").
-    - Be realistic. If a store is a general supermarket, list specialty Asian items as 'Missing' unless it's a known well-stocked location.
-    - Ensure EVERY ingredient in my list is addressed across the store options.
   `;
 
   const response = await ai.models.generateContent({
@@ -200,14 +230,7 @@ export const findStoresForIngredients = async (
     contents: query,
     config: {
       tools: [{ googleMaps: {} }],
-      toolConfig: {
-        retrievalConfig: {
-          latLng: {
-            latitude: location.lat,
-            longitude: location.lng
-          }
-        }
-      }
+      toolConfig: retrievalConfig ? { retrievalConfig } : undefined
     }
   });
 
@@ -217,18 +240,19 @@ export const findStoresForIngredients = async (
   };
 };
 
-// New helper to convert the text response into a structured "Database" of stores
 export const extractStoreInventory = async (responseText: string): Promise<SavedStore[]> => {
   const ai = getClient();
 
   const prompt = `
     Analyze the following text which describes availability of ingredients at various stores.
-    Extract structured data about each store and what ingredients they have.
+    Extract structured data about each store including its address, rating, distance, and inventory.
     
-    IMPORTANT: For the 'knownIngredients' field, capture strictly the items listed under "In Stock", "Available", or "Has".
-    Do NOT include items listed under "Missing" or "Not Found".
-    
-    Normalize the ingredient names.
+    IMPORTANT: 
+    - For 'knownIngredients', capture strictly the items listed under "In Stock", "Available", or "Has".
+    - Normalize ingredient names.
+    - Extract the full address if present.
+    - Extract the numeric rating if present.
+    - Extract the distance string (e.g. "2.3 miles", "0.5 km") if present.
     
     Text to analyze:
     "${responseText}"
@@ -245,6 +269,9 @@ export const extractStoreInventory = async (responseText: string): Promise<Saved
           type: Type.OBJECT,
           properties: {
             name: { type: Type.STRING },
+            address: { type: Type.STRING },
+            distance: { type: Type.STRING },
+            rating: { type: Type.NUMBER },
             knownIngredients: { type: Type.ARRAY, items: { type: Type.STRING } },
             notes: { type: Type.STRING }
           }
@@ -258,10 +285,12 @@ export const extractStoreInventory = async (responseText: string): Promise<Saved
 
   try {
     const raw = JSON.parse(text);
-    // Add timestamps
+    // Add timestamps and a placeholder image if we don't have one
     return raw.map((r: any) => ({
       ...r,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
+      // Use a consistent, reliable placeholder service
+      imageUrl: `https://placehold.co/600x400/e2e8f0/475569?text=${encodeURIComponent(r.name)}`
     }));
   } catch (e) {
     console.error("Failed to parse store inventory", e);

@@ -48,7 +48,10 @@ declare module 'lucide-react' {
   export const BarChart3: Icon;
   export const TrendingUp: Icon;
   export const PieChart: Icon;
-  export const Crown: Icon; // New
-  export const Zap: Icon; // New
-  export const Star: Icon; // New
+  export const Crown: Icon;
+  export const Zap: Icon;
+  export const Star: Icon;
+  export const Share2: Icon;
+  export const LocateFixed: Icon;
+  export const Edit2: Icon;
 }

@@ -67,14 +67,20 @@ export default function App() {
     nutritionalGoals: {
       maxCaloriesPerServing: undefined,
       minProteinPerServing: undefined
-    }
+    },
+    ratings: {} // Initialize ratings
   });
 
   // Load preferences from local storage if available
   useEffect(() => {
       const savedPrefs = localStorage.getItem('userPreferences');
       if (savedPrefs) {
-          setUserPreferences(JSON.parse(savedPrefs));
+          const parsed = JSON.parse(savedPrefs);
+          // Ensure ratings exists for legacy data
+          setUserPreferences({
+             ...parsed,
+             ratings: parsed.ratings || {}
+          });
       }
   }, []);
 
@@ -100,8 +106,12 @@ export default function App() {
   // Shopping State
   const [shoppingList, setShoppingList] = useState<string[]>([]);
   const [showStoreMap, setShowStoreMap] = useState(false);
-  const [storeData, setStoreData] = useState<StoreSearchResponse | null>(null);
+  const [foundStores, setFoundStores] = useState<SavedStore[]>([]);
+  const [storeSearchText, setStoreSearchText] = useState<string>(""); 
   const [isLocatingStores, setIsLocatingStores] = useState(false);
+  
+  // Location Override State (e.g. "San Francisco")
+  const [locationOverride, setLocationOverride] = useState<string | null>(null);
 
   // Load stores on mount
   useEffect(() => {
@@ -163,6 +173,16 @@ export default function App() {
           else next.add(recipeId);
           return next;
       });
+  };
+
+  const handleRateRecipe = (recipeId: string, rating: number) => {
+    setUserPreferences(prev => ({
+      ...prev,
+      ratings: {
+        ...prev.ratings,
+        [recipeId]: rating
+      }
+    }));
   };
 
   const handleUpgrade = () => {
@@ -241,12 +261,14 @@ export default function App() {
         if (isOwned) {
           owned.push(ing);
         } else {
-          // 2. Check substitutes
+          // 2. Check substitutes based on object structure or string (handle legacy)
           let isSubstitutable = false;
           if (ing.substitutes && ing.substitutes.length > 0) {
-             isSubstitutable = ing.substitutes.some(sub => 
-                 pantryNames.some(pName => isIngredientMatch(sub, pName))
-             );
+             // Handle if substitutes are strings or objects
+             isSubstitutable = ing.substitutes.some((sub: any) => {
+                 const subName = typeof sub === 'string' ? sub : sub.name;
+                 return pantryNames.some(pName => isIngredientMatch(subName, pName));
+             });
           }
 
           if (isSubstitutable) {
@@ -279,43 +301,84 @@ export default function App() {
     return matchedRecipes.filter(m => m.recipe.difficulty === activeFilter);
   }, [matchedRecipes, activeFilter, favorites]);
 
-  const handleShopForMissing = async (missing: Ingredient[]) => {
+  // SHOPPING LOGIC
+  const handleShopForMissing = async (missing: Ingredient[], manualLocation?: string) => {
     const ingredientNames = missing.map(i => i.name);
     setShoppingList(ingredientNames);
     setShowStoreMap(true);
     setIsLocatingStores(true);
-    setStoreData(null);
+    setFoundStores([]);
+    setStoreSearchText("");
+
+    const locToUse = manualLocation || locationOverride;
 
     try {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(async (position) => {
-           const { latitude, longitude } = position.coords;
-           
-           const result = await findStoresForIngredients(ingredientNames, { lat: latitude, lng: longitude });
-           setStoreData(result);
-           setIsLocatingStores(false);
+      if (locToUse) {
+         // USE MANUAL LOCATION
+         const result = await findStoresForIngredients(ingredientNames, locToUse);
+         setStoreSearchText(result.text);
 
-           if (result.text) {
-             extractStoreInventory(result.text).then(newStores => {
-               const updated = saveStoreData(newStores);
-               setSavedStores(updated);
-             });
-           }
-
-        }, (err) => {
-           console.error("Geo error", err);
-           alert("We need your location to find stores. Please enable permissions.");
-           setIsLocatingStores(false);
-           setShowStoreMap(false);
-        });
+         if (result.text) {
+             const parsedStores = await extractStoreInventory(result.text);
+             setFoundStores(parsedStores);
+             const updated = saveStoreData(parsedStores);
+             setSavedStores(updated);
+         }
+         setIsLocatingStores(false);
       } else {
-          alert("Geolocation is not supported by this browser.");
-          setIsLocatingStores(false);
+         // USE GPS
+         if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+               const { latitude, longitude } = position.coords;
+               
+               const result = await findStoresForIngredients(ingredientNames, { lat: latitude, lng: longitude });
+               setStoreSearchText(result.text);
+
+               if (result.text) {
+                 const parsedStores = await extractStoreInventory(result.text);
+                 setFoundStores(parsedStores);
+                 
+                 const updated = saveStoreData(parsedStores);
+                 setSavedStores(updated);
+               }
+               
+               setIsLocatingStores(false);
+            }, (err) => {
+               console.error("Geo error", err);
+               alert("Could not get location. Try entering your city manually.");
+               setIsLocatingStores(false);
+            }, {
+                enableHighAccuracy: true,
+                maximumAge: 0 // Force fresh location
+            });
+         } else {
+            alert("Geolocation is not supported. Please enter a manual location.");
+            setIsLocatingStores(false);
+         }
       }
     } catch (e) {
       console.error(e);
       setIsLocatingStores(false);
     }
+  };
+
+  const handleUpdateLocation = (loc: string) => {
+      setLocationOverride(loc);
+      // Re-trigger search with new location but same items
+      if (shoppingList.length > 0) {
+          const missingObjs = shoppingList.map(name => ({ name, quantity: '' })); // Mock ingredient obj
+          handleShopForMissing(missingObjs as Ingredient[], loc);
+      }
+  };
+
+  const handleRefreshLocation = () => {
+      setLocationOverride(null); // Clear override
+      // Re-trigger search with GPS
+      if (shoppingList.length > 0) {
+        const missingObjs = shoppingList.map(name => ({ name, quantity: '' }));
+        // Pass undefined to force GPS path
+        handleShopForMissing(missingObjs as Ingredient[], undefined);
+      }
   };
 
   const handleAddBoughtItems = (items: string[]) => {
@@ -559,7 +622,9 @@ export default function App() {
                       key={match.recipe.id} 
                       match={match}
                       isFavorite={favorites.has(match.recipe.id)} 
+                      userRating={userPreferences.ratings[match.recipe.id]}
                       onToggleFavorite={() => toggleFavorite(match.recipe.id)}
+                      onRate={(rating) => handleRateRecipe(match.recipe.id, rating)}
                       onShop={handleShopForMissing} 
                       onViewDetails={() => setSelectedMatch(match)}
                       onCook={() => {
@@ -647,17 +712,22 @@ export default function App() {
       {showStoreMap && (
         <StoreMap 
           missingIngredients={shoppingList}
-          storeData={storeData}
+          stores={foundStores}
+          summaryText={storeSearchText}
           loading={isLocatingStores}
+          userLocationLabel={locationOverride || "Current Location"}
           onClose={() => setShowStoreMap(false)}
           onAddToPantry={handleAddBoughtItems}
           onLogPurchase={handleLogPurchase}
+          onChangeLocation={handleUpdateLocation}
+          onRefreshLocation={handleRefreshLocation}
         />
       )}
 
       {selectedMatch && (
         <RecipeDetailModal
           match={selectedMatch}
+          userRating={userPreferences.ratings[selectedMatch.recipe.id]}
           initialCookingMode={startCookingMode}
           onClose={() => {
             setSelectedMatch(null);
@@ -665,6 +735,7 @@ export default function App() {
           }}
           onShop={handleShopForMissing}
           onCompleteCooking={handleCompleteCooking}
+          onRate={(rating) => handleRateRecipe(selectedMatch.recipe.id, rating)}
         />
       )}
     </div>
