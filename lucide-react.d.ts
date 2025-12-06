@@ -55,4 +55,9 @@ declare module 'lucide-react' {
   export const LocateFixed: Icon;
   export const Edit2: Icon;
   export const ScanBarcode: Icon;
+  export const Wine: Icon;
+  export const Volume2: Icon;
+  export const ScanEye: Icon;
+  export const Languages: Icon;
+  export const Layers: Icon;
 }

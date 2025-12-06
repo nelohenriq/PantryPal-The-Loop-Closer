@@ -1,8 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { SavedStore } from '../types';
-import { MapPin, Navigation, ExternalLink, SquareCheck, Plus, ArrowRight, Store, X, Star, Calendar, Filter, LocateFixed, Edit2, Search } from 'lucide-react';
+import { MapPin, Navigation, ExternalLink, SquareCheck, Plus, ArrowRight, Store, X, Star, Calendar, Filter, LocateFixed, Edit2, Search, ScanEye } from 'lucide-react';
 import { isIngredientMatch } from '../utils/ingredientMatching';
+import { LabelDecoder } from './LabelDecoder';
 
 interface StoreMapProps {
   missingIngredients: string[];
@@ -44,6 +45,9 @@ export const StoreMap: React.FC<StoreMapProps> = ({
   const [newStoreName, setNewStoreName] = useState("");
   const [newStoreAddress, setNewStoreAddress] = useState("");
   const [newStoreNotes, setNewStoreNotes] = useState("");
+
+  // Label Decoder State
+  const [showLabelDecoder, setShowLabelDecoder] = useState(false);
 
   const toggleCheck = (item: string) => {
     setCheckedItems(prev => {
@@ -111,12 +115,14 @@ export const StoreMap: React.FC<StoreMapProps> = ({
     return stores.filter(store => {
       // The store must have ALL selected filter items
       return Array.from(filteredItems).every(filterItem => {
-        return ((store.knownIngredients || []) as string[]).some((known: string) => 
+        const ingredients = store.knownIngredients || [];
+        return ingredients.some((rawKnown: string) => {
+           const known = String(rawKnown);
            // Use fuzzy match or simple inclusion
-           isIngredientMatch(filterItem, known) || 
+           return isIngredientMatch(filterItem, known) || 
            known.toLowerCase().includes(filterItem.toLowerCase()) ||
-           filterItem.toLowerCase().includes(known.toLowerCase())
-        );
+           filterItem.toLowerCase().includes(known.toLowerCase());
+        });
       });
     });
   }, [stores, filteredItems]);
@@ -178,10 +184,20 @@ export const StoreMap: React.FC<StoreMapProps> = ({
             
             {/* Left Column: Interactive Checklist */}
             <div className="p-4 lg:p-6 lg:border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 order-2 lg:order-1">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <SquareCheck className="w-5 h-5 text-emerald-600" />
-                    Shopping Checklist
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <SquareCheck className="w-5 h-5 text-emerald-600" />
+                        Checklist
+                    </h3>
+                    
+                    {/* Scan Label Button */}
+                    <button 
+                        onClick={() => setShowLabelDecoder(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 transition"
+                    >
+                        <ScanEye className="w-4 h-4" /> Scan Label
+                    </button>
+                </div>
                 
                 <div className="space-y-2">
                     {missingIngredients.map(ing => {
@@ -338,7 +354,8 @@ export const StoreMap: React.FC<StoreMapProps> = ({
                                             {/* Inventory Snippet */}
                                             {store.knownIngredients.length > 0 && (
                                                 <div className="mt-2 flex flex-wrap gap-1">
-                                                    {((store.knownIngredients || []) as string[]).map((item: string, i) => {
+                                                    {store.knownIngredients.map((rawItem: string, i) => {
+                                                        const item = String(rawItem);
                                                         // Highlight if matches filter
                                                         const isMatch = Array.from(filteredItems).some(f => 
                                                             isIngredientMatch(f, item) || 
@@ -459,6 +476,18 @@ export const StoreMap: React.FC<StoreMapProps> = ({
             </div>
         </div>
       </div>
+
+      {/* Label Decoder Modal */}
+      {showLabelDecoder && (
+        <LabelDecoder 
+            missingIngredients={missingIngredients}
+            onClose={() => setShowLabelDecoder(false)}
+            onAddFromScan={(item) => {
+                // Future enhancement: Add to bought list
+                setShowLabelDecoder(false);
+            }}
+        />
+      )}
 
       {/* Store Info Modal */}
       {selectedStore && (

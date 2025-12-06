@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { RecipeMatch, Ingredient } from '../types';
-import { X, CircleCheck, CircleAlert, RefreshCw, ShoppingCart, Clock, ChefHat, Check, PlayCircle, Flame, Activity, LoaderCircle, ExternalLink, Lightbulb, Star } from 'lucide-react';
+import { X, CircleCheck, CircleAlert, RefreshCw, ShoppingCart, Clock, ChefHat, Check, PlayCircle, Flame, Activity, LoaderCircle, ExternalLink, Lightbulb, Star, Volume2, Wine } from 'lucide-react';
 import { CookingMode } from './CookingMode';
 import { generateRecipeImage } from '../services/geminiService';
 
@@ -17,26 +17,41 @@ interface RecipeDetailModalProps {
 
 export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, userRating, onClose, onShop, initialCookingMode = false, onCompleteCooking, onRate }) => {
   const [showCookingMode, setShowCookingMode] = useState(initialCookingMode);
-  const [imageUrl, setImageUrl] = useState<string | null>(match.recipe.imageUrl || null);
+  // Only use state for image if it's missing in props. 
+  // If match.recipe.imageUrl exists (from card), we use it directly.
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [loadingImage, setLoadingImage] = useState(false);
   
   const { recipe, ownedIngredients, missingIngredients, substitutableIngredients } = match;
 
+  // Use the prop image if available, otherwise the locally generated one
+  const displayImage = recipe.imageUrl || generatedImageUrl;
+
   useEffect(() => {
-    // Generate an image if one doesn't exist
-    if (!imageUrl) {
+    // Generate an image ONLY if one doesn't exist in the recipe prop AND we haven't generated one yet
+    if (!recipe.imageUrl && !generatedImageUrl && !loadingImage) {
         setLoadingImage(true);
         generateRecipeImage(recipe.name, recipe.description)
             .then(url => {
                 if (url) {
-                    setImageUrl(url);
-                    // In a real app, update the parent state here to cache it
-                    match.recipe.imageUrl = url; 
+                    setGeneratedImageUrl(url);
+                    // We don't update the parent prop here directly because we can't, 
+                    // but visual consistency is maintained via local state fallback.
                 }
             })
             .finally(() => setLoadingImage(false));
     }
-  }, [recipe.name, recipe.id]);
+  }, [recipe.imageUrl, recipe.name, recipe.id, recipe.description]);
+
+  const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        // Try to find a good voice, otherwise default
+        window.speechSynthesis.speak(utterance);
+    } else {
+        alert("Text-to-speech not supported in this browser.");
+    }
+  };
   
   if (showCookingMode) {
     return <CookingMode 
@@ -67,14 +82,14 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 border border-gray-200 dark:border-gray-800">
           {/* Header */}
           <div className="relative h-48 sm:h-64 bg-gray-200 dark:bg-gray-800 shrink-0 group">
-             {loadingImage ? (
+             {!displayImage && loadingImage ? (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
                     <LoaderCircle className="w-8 h-8 animate-spin mb-2 text-emerald-500" />
                     <span className="text-xs font-medium">Generating AI photo...</span>
                 </div>
              ) : (
                 <img 
-                    src={imageUrl || `https://picsum.photos/seed/${recipe.id}/800/400`} 
+                    src={displayImage || `https://picsum.photos/seed/${recipe.id}/800/400`} 
                     alt={recipe.name} 
                     className="w-full h-full object-cover transition duration-700" 
                 />
@@ -141,6 +156,19 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
                  </div>
              )}
 
+             {/* Beverage Pairing (New Feature) */}
+             {recipe.beveragePairing && (
+                <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-xl border border-purple-100 dark:border-purple-900/30 flex items-start gap-3">
+                   <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full text-purple-600 dark:text-purple-400">
+                       <Wine className="w-5 h-5" />
+                   </div>
+                   <div>
+                       <h3 className="text-sm font-bold text-purple-900 dark:text-purple-300 uppercase tracking-wide mb-1">Perfect Pairing</h3>
+                       <p className="text-sm text-gray-700 dark:text-gray-300">{recipe.beveragePairing}</p>
+                   </div>
+                </div>
+             )}
+
              {/* Chef's Tips Section */}
              {recipe.tips && recipe.tips.length > 0 && (
                 <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-xl border border-amber-100 dark:border-amber-800/30">
@@ -181,13 +209,22 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
                                <h5 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5 ml-1">{cat}</h5>
                                <div className="space-y-2">
                                  {items.map((ing, i) => (
-                                    <div key={`missing-${i}`} className="flex items-start justify-between p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 shadow-sm relative overflow-hidden">
-                                       <div className="flex items-start gap-3 relative z-10">
+                                    <div key={`missing-${i}`} className="flex items-start justify-between p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 shadow-sm relative overflow-hidden group">
+                                       <div className="flex items-start gap-3 relative z-10 w-full">
                                           <div className="mt-0.5 p-1.5 bg-white dark:bg-red-950 rounded-full text-red-500 dark:text-red-400 shadow-sm border border-red-100 dark:border-red-900/50">
                                              <CircleAlert className="w-4 h-4" />
                                           </div>
-                                          <div>
-                                             <p className="font-bold text-gray-900 dark:text-white">{ing.name}</p>
+                                          <div className="flex-1">
+                                             <div className="flex items-center justify-between">
+                                                <p className="font-bold text-gray-900 dark:text-white">{ing.name}</p>
+                                                <button 
+                                                    onClick={() => speakText(ing.name)} 
+                                                    className="p-1 text-gray-400 hover:text-emerald-500 dark:text-gray-500 dark:hover:text-emerald-400 rounded-full transition"
+                                                    title="Pronounce"
+                                                >
+                                                    <Volume2 className="w-4 h-4" />
+                                                </button>
+                                             </div>
                                              <p className="text-sm text-red-800 dark:text-red-300 font-medium">{ing.quantity}</p>
                                           </div>
                                        </div>
@@ -213,12 +250,21 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
                                <div className="space-y-2">
                                  {items.map((ing, i) => (
                                     <div key={`sub-${i}`} className="flex items-start justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-900/30">
-                                       <div className="flex items-start gap-3">
+                                       <div className="flex items-start gap-3 w-full">
                                           <div className="mt-0.5 p-1.5 bg-white dark:bg-amber-950 rounded-full text-amber-500 dark:text-amber-400 shadow-sm border border-amber-100 dark:border-amber-900/50">
                                              <RefreshCw className="w-4 h-4" />
                                           </div>
-                                          <div>
-                                             <p className="font-semibold text-gray-900 dark:text-white">{ing.name}</p>
+                                          <div className="flex-1">
+                                             <div className="flex items-center justify-between">
+                                                <p className="font-semibold text-gray-900 dark:text-white">{ing.name}</p>
+                                                <button 
+                                                    onClick={() => speakText(ing.name)} 
+                                                    className="p-1 text-gray-400 hover:text-emerald-500 dark:text-gray-500 dark:hover:text-emerald-400 rounded-full transition"
+                                                    title="Pronounce"
+                                                >
+                                                    <Volume2 className="w-4 h-4" />
+                                                </button>
+                                             </div>
                                              <p className="text-sm text-gray-500 dark:text-gray-400">{ing.quantity}</p>
                                              
                                              {/* Sub Details */}
@@ -259,12 +305,21 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
                                <div className="space-y-2">
                                  {items.map((ing, i) => (
                                     <div key={`owned-${i}`} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
-                                       <div className="flex items-center gap-3">
+                                       <div className="flex items-center gap-3 w-full">
                                           <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400">
                                              <CircleCheck className="w-4 h-4" />
                                           </div>
-                                          <div>
-                                             <p className="font-medium text-gray-700 dark:text-gray-200">{ing.name}</p>
+                                          <div className="flex-1">
+                                             <div className="flex items-center justify-between">
+                                                <p className="font-medium text-gray-700 dark:text-gray-200">{ing.name}</p>
+                                                <button 
+                                                    onClick={() => speakText(ing.name)} 
+                                                    className="p-1 text-gray-400 hover:text-emerald-500 dark:text-gray-500 dark:hover:text-emerald-400 rounded-full transition"
+                                                    title="Pronounce"
+                                                >
+                                                    <Volume2 className="w-4 h-4" />
+                                                </button>
+                                             </div>
                                              <p className="text-xs text-gray-500 dark:text-gray-400">{ing.quantity}</p>
                                           </div>
                                        </div>

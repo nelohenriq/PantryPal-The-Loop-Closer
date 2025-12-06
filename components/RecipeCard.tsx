@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { RecipeMatch, Ingredient } from '../types';
-import { Clock, ChefHat, ShoppingCart, CircleCheck, RefreshCw, Eye, Flame, Heart, Star, Share2 } from 'lucide-react';
+import { Clock, ChefHat, ShoppingCart, CircleCheck, RefreshCw, Eye, Flame, Heart, Star, Share2, Layers } from 'lucide-react';
+import { generateRecipeImage } from '../services/geminiService';
 
 interface RecipeCardProps {
   match: RecipeMatch;
@@ -12,11 +13,28 @@ interface RecipeCardProps {
   onCook: () => void;
   onToggleFavorite: () => void;
   onRate: (rating: number) => void;
+  onImageUpdate?: (id: string, url: string) => void; // Callback to update parent state
 }
 
-export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userRating, onShop, onViewDetails, onCook, onToggleFavorite, onRate }) => {
+export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userRating, onShop, onViewDetails, onCook, onToggleFavorite, onRate, onImageUpdate }) => {
   const { recipe, matchScore, missingIngredients, substitutableIngredients } = match;
+  const [imageUrl, setImageUrl] = useState<string | null>(recipe.imageUrl || null);
   
+  // Generate Image if missing
+  useEffect(() => {
+    if (!imageUrl) {
+        generateRecipeImage(recipe.name, recipe.description).then(url => {
+            if (url) {
+                setImageUrl(url);
+                if (onImageUpdate) {
+                    onImageUpdate(recipe.id, url);
+                }
+            }
+        });
+    }
+  }, [recipe.id, recipe.name]);
+
+
   // Format score as percentage
   const scorePercent = Math.round(matchScore * 100);
   
@@ -101,7 +119,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userR
         className="h-40 bg-gray-100 dark:bg-gray-800 relative overflow-hidden cursor-pointer"
       >
         <img 
-          src={recipe.imageUrl || `https://picsum.photos/seed/${recipe.id}/800/400`} 
+          src={imageUrl || `https://picsum.photos/seed/${recipe.id}/800/400`} 
           alt={recipe.name} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
@@ -152,6 +170,15 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ match, isFavorite, userR
              ))}
            </div>
         </div>
+
+        {/* Recipe Type Badge (New) */}
+        {recipe.recipeType === 'Base Component' && (
+           <div className="mb-3">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-200 dark:border-purple-800">
+                  <Layers className="w-3.5 h-3.5" /> Homemade Staple
+              </span>
+           </div>
+        )}
 
         {/* Progress Bar */}
         <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mb-4 overflow-hidden">

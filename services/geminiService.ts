@@ -55,8 +55,12 @@ export const generateRecipes = async (
     You are an expert Chef specializing in ASIAN CUISINE (East Asian, Southeast Asian, South Asian).
     Suggest 4 distinct recipes for: "${query}".
     
-    STRICT CONSTRAINT: ONLY generate recipes that are authentically Asian or well-known Asian-Fusion dishes. 
-    If the user requests a non-Asian dish (like "Pizza" or "Burger"), strictly interpret it through an Asian lens (e.g., "Bulgogi Pizza", "Ramen Burger") or default to a popular Asian dish that fits the vibe.
+    CRITICAL INSTRUCTION - DUAL MODES:
+    If the user's query is a foundational food item (e.g. "Kimchi", "Tofu", "Noodles", "Dumplings", "Curry Paste"), you MUST provide a mix of:
+    1. 'Base Component': The authentic recipe to make that item FROM SCRATCH (e.g. "Homemade Napa Cabbage Kimchi").
+    2. 'Meal': Delicious dishes that use that item as a main ingredient (e.g. "Kimchi Jjigae").
+    
+    If the query is already a specific dish (e.g. "Pad Thai"), just provide variations of that 'Meal'.
     
     ${pantryString}
     ${dietString}
@@ -69,9 +73,10 @@ export const generateRecipes = async (
     2. For EVERY ingredient, you MUST assign a specific category (e.g., Produce, Meat, Dairy, Pantry, Spices, Bakery).
     3. For EVERY ingredient, you MUST provide a list of potential substitutes if applicable.
     4. Provide expert "Chef's Tips" for preparation or cooking techniques.
-    5. Estimate nutritional values (Calories, Protein, Carbs, Fat) for one serving.
-    6. Ensure quantities are precise.
-    7. STRICTLY adhere to the dietary restrictions and allergies provided.
+    5. Suggest a specific BEVERAGE PAIRING (tea, beer, sake, or non-alcoholic) that complements the dish.
+    6. Estimate nutritional values (Calories, Protein, Carbs, Fat) for one serving.
+    7. Ensure quantities are precise.
+    8. STRICTLY adhere to the dietary restrictions and allergies provided.
   `;
 
   const response = await ai.models.generateContent({
@@ -89,6 +94,7 @@ export const generateRecipes = async (
             description: { type: Type.STRING },
             cuisine: { type: Type.STRING, description: "Specific Asian cuisine (e.g. Korean, Japanese, Thai)" },
             difficulty: { type: Type.STRING, enum: ["Easy", "Medium", "Hard"] },
+            recipeType: { type: Type.STRING, enum: ["Meal", "Base Component"], description: "Is this a ready-to-eat meal or a base ingredient/staple made from scratch?" },
             timeMinutes: { type: Type.NUMBER },
             ingredients: {
               type: Type.ARRAY,
@@ -115,6 +121,7 @@ export const generateRecipes = async (
             },
             instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
             tips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Expert cooking tips" },
+            beveragePairing: { type: Type.STRING, description: "A drink that pairs well with this dish" },
             nutrition: {
                 type: Type.OBJECT,
                 properties: {
@@ -360,4 +367,46 @@ export const parseReceipt = async (imageFile: File): Promise<string[]> => {
     console.error("Failed to parse receipt items", e);
     return [];
   }
+};
+
+export const identifyProductLabel = async (imageFile: File, searchingFor: string[]): Promise<string> => {
+  const ai = getClient();
+
+  const base64Data = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(imageFile);
+  });
+  const base64Content = base64Data.split(',')[1];
+
+  const shoppingContext = searchingFor.length > 0 
+    ? `The user is specifically looking for these items: ${searchingFor.join(", ")}. Check if this product matches any of them.` 
+    : "Identify this product.";
+
+  const prompt = `
+    You are an expert Asian grocery identifier. Analyze this image of a product label.
+    
+    1. Identify the **Product Name** (in English and Original Language if visible).
+    2. Explain **What it is** and **How to use it**.
+    3. **Translate** any key text on the label that helps identify flavor, spicy level, or usage.
+    4. If it is a specific variation (e.g. Light vs Dark Soy Sauce, Gochujang vs Ssamjang), clarify strictly what it is.
+    
+    ${shoppingContext}
+    
+    Format the response in Markdown with clear headings. 
+    Use emojis to make it friendly.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: {
+      parts: [
+        { inlineData: { mimeType: imageFile.type, data: base64Content } },
+        { text: prompt }
+      ]
+    }
+  });
+
+  return response.text || "Could not identify product.";
 };

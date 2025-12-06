@@ -23,10 +23,12 @@ export interface Recipe {
   description: string;
   cuisine: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
+  recipeType?: 'Meal' | 'Base Component'; // New field
   timeMinutes: number;
   ingredients: Ingredient[];
   instructions: string[];
   tips?: string[];
+  beveragePairing?: string; 
   nutrition: Nutrition;
   imageUrl?: string;
 }
@@ -76,15 +78,15 @@ export interface SavedStore {
   placeId?: string; 
   imageUrl?: string; 
   rating?: number; 
-  distance?: string; // New field for distance string (e.g. "1.2 miles")
+  distance?: string; 
   lastUpdated: number;
-  knownIngredients: string[]; // List of ingredients confirmed to be here
+  knownIngredients: string[]; 
   notes?: string;
-  approved?: boolean; // True if from AI/System, False if user-submitted pending review
+  approved?: boolean; 
 }
 
 export interface UserPreferences {
-  isPremium?: boolean; // Track subscription status
+  isPremium?: boolean; 
   dietary: {
     vegan: boolean;
     vegetarian: boolean;
@@ -94,9 +96,9 @@ export interface UserPreferences {
   allergies: string;
   nutritionalGoals: {
     maxCaloriesPerServing?: number;
-    minProteinPerServing?: number; // in grams
+    minProteinPerServing?: number; 
   };
-  ratings: Record<string, number>; // Map of recipeId -> rating (1-5)
+  ratings: Record<string, number>; 
 }
 
 // Analytics Types

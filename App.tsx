@@ -14,7 +14,7 @@ import { PremiumModal } from './components/PremiumModal';
 import { LandingPage } from './components/LandingPage';
 import { logCookingEvent, logShoppingEvent } from './services/analyticsService';
 import { saveStoreData, getSavedStores } from './services/storeStorage';
-import { Search, ShoppingBag, ChefHat, Sparkles, Filter, Database, Settings, Lightbulb, Plus, Sun, Moon, Heart, BarChart3, Crown } from 'lucide-react';
+import { Search, ShoppingBag, ChefHat, Sparkles, Filter, Database, Settings, Lightbulb, Plus, Sun, Moon, Heart, BarChart3, Crown, Layers } from 'lucide-react';
 import { isIngredientMatch, normalize } from './utils/ingredientMatching';
 
 export default function App() {
@@ -187,6 +187,16 @@ export default function App() {
     }));
   };
 
+  // Function to update recipe image URL in state
+  const handleUpdateRecipeImage = (id: string, url: string) => {
+    setRecipes(prev => prev.map(r => r.id === id ? { ...r, imageUrl: url } : r));
+    
+    // Also update selectedMatch if it matches, so the modal gets the new URL immediately
+    if (selectedMatch && selectedMatch.recipe.id === id) {
+        setSelectedMatch(prev => prev ? { ...prev, recipe: { ...prev.recipe, imageUrl: url } } : null);
+    }
+  };
+
   const handleUpgrade = () => {
       setUserPreferences(prev => ({ ...prev, isPremium: true }));
       setShowPremiumModal(false);
@@ -300,8 +310,12 @@ export default function App() {
     if (activeFilter === 'Favorites') return matchedRecipes.filter(m => favorites.has(m.recipe.id));
     if (activeFilter === 'All') return matchedRecipes;
     if (activeFilter === 'Cook Now') return matchedRecipes.filter(m => m.missingIngredients.length === 0);
+    if (activeFilter === 'Staples') return matchedRecipes.filter(m => m.recipe.recipeType === 'Base Component');
     return matchedRecipes.filter(m => m.recipe.difficulty === activeFilter);
   }, [matchedRecipes, activeFilter, favorites]);
+  
+  // Check if any staples exist to show the filter
+  const hasStaples = matchedRecipes.some(m => m.recipe.recipeType === 'Base Component');
 
   // SHOPPING LOGIC
   const handleShopForMissing = async (missing: Ingredient[], manualLocation?: string) => {
@@ -566,7 +580,7 @@ export default function App() {
               <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium mr-2">
                 <Filter className="w-4 h-4" /> Filter:
               </div>
-              {['All', 'Cook Now', 'Favorites', 'Easy', 'Medium', 'Hard'].map(filter => {
+              {['All', 'Cook Now', 'Favorites', ...(hasStaples ? ['Staples'] : []), 'Easy', 'Medium', 'Hard'].map(filter => {
                 const isActive = activeFilter === filter;
                 let className = `px-4 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5 `;
                 
@@ -581,6 +595,12 @@ export default function App() {
                          className += 'bg-red-500 text-white shadow-md shadow-red-200 dark:shadow-none';
                     } else {
                          className += 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30';
+                    }
+                } else if (filter === 'Staples') {
+                    if (isActive) {
+                        className += 'bg-purple-600 text-white shadow-md shadow-purple-200 dark:shadow-none';
+                    } else {
+                        className += 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30';
                     }
                 } else {
                     if (isActive) {
@@ -598,6 +618,7 @@ export default function App() {
                     >
                       {filter === 'Cook Now' && <ChefHat className="w-3.5 h-3.5" />}
                       {filter === 'Favorites' && <Heart className="w-3.5 h-3.5 fill-current" />}
+                      {filter === 'Staples' && <Layers className="w-3.5 h-3.5" />}
                       {filter}
                     </button>
                 );
@@ -644,6 +665,7 @@ export default function App() {
                         setSelectedMatch(match);
                         setStartCookingMode(true);
                       }}
+                      onImageUpdate={handleUpdateRecipeImage}
                     />
                   ))}
             </div>
