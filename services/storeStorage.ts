@@ -1,3 +1,4 @@
+
 import { SavedStore } from "../types";
 
 const STORAGE_KEY = 'pantrypal_store_kb';
@@ -15,15 +16,15 @@ export const getSavedStores = (): SavedStore[] => {
 export const saveStoreData = (newStores: SavedStore[]) => {
   const currentStores = getSavedStores();
   
-  newStores.forEach(newStore => {
+  (newStores || []).forEach(newStore => {
     const existingIndex = currentStores.findIndex(s => s.name.toLowerCase() === newStore.name.toLowerCase());
     
     if (existingIndex >= 0) {
       // Merge inventory
       const existing = currentStores[existingIndex];
       const mergedIngredients = Array.from(new Set([
-        ...existing.knownIngredients,
-        ...newStore.knownIngredients
+        ...(existing.knownIngredients || []),
+        ...(newStore.knownIngredients || [])
       ])).sort();
 
       currentStores[existingIndex] = {
@@ -34,7 +35,10 @@ export const saveStoreData = (newStores: SavedStore[]) => {
       };
     } else {
       // Add new
-      currentStores.push(newStore);
+      currentStores.push({
+          ...newStore,
+          knownIngredients: newStore.knownIngredients || []
+      });
     }
   });
 

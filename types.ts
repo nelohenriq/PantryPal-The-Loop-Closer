@@ -36,6 +36,7 @@ export interface Recipe {
 export interface PantryItem {
   id: string;
   name: string;
+  quantity?: string; // Added quantity field
   addedAt: number;
   expiryDate?: number; // timestamp
 }

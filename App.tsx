@@ -14,7 +14,7 @@ import { PremiumModal } from './components/PremiumModal';
 import { LandingPage } from './components/LandingPage';
 import { logCookingEvent, logShoppingEvent } from './services/analyticsService';
 import { saveStoreData, getSavedStores } from './services/storeStorage';
-import { Search, ShoppingBag, ChefHat, Sparkles, Filter, Database, Settings, Lightbulb, Plus, Sun, Moon, Heart, BarChart3, Crown, Layers } from 'lucide-react';
+import { Search, ShoppingBag, ChefHat, Sparkles, Filter, Database, Settings, Lightbulb, Plus, Sun, Moon, Heart, BarChart3, Crown, Layers, Dices } from 'lucide-react';
 import { isIngredientMatch, normalize } from './utils/ingredientMatching';
 
 export default function App() {
@@ -145,7 +145,7 @@ export default function App() {
   };
 
   // Handlers
-  const addPantryItem = (name: string, expiry?: number) => {
+  const addPantryItem = (name: string, expiry?: number, quantity?: string) => {
     // Premium Gate: Limit free users to 20 items
     if (!userPreferences.isPremium && pantryItems.length >= 20) {
         setShowPantry(false);
@@ -157,10 +157,14 @@ export default function App() {
         const idx = prev.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
         if (idx >= 0) {
             const updated = [...prev];
-            updated[idx] = { ...updated[idx], expiryDate: expiry || updated[idx].expiryDate };
+            updated[idx] = { 
+                ...updated[idx], 
+                expiryDate: expiry || updated[idx].expiryDate,
+                quantity: quantity || updated[idx].quantity 
+            };
             return updated;
         }
-        return [...prev, { id: crypto.randomUUID(), name, addedAt: Date.now(), expiryDate: expiry }];
+        return [...prev, { id: crypto.randomUUID(), name, addedAt: Date.now(), expiryDate: expiry, quantity }];
     });
   };
 
@@ -255,6 +259,12 @@ export default function App() {
     }
   };
 
+  const handleFeelingLucky = () => {
+    const luckyQuery = "A unique, highly-rated Asian dish that fits my dietary preferences. Surprise me!";
+    setCuisineQuery(luckyQuery);
+    handleSearch(undefined, luckyQuery);
+  };
+
   // Matching Logic
   const matchedRecipes = useMemo<RecipeMatch[]>(() => {
     if (!recipes.length) return [];
@@ -266,7 +276,8 @@ export default function App() {
       const missing: Ingredient[] = [];
       const substitutable: Ingredient[] = [];
 
-      recipe.ingredients.forEach((ing: Ingredient) => {
+      // Defensive check: Ensure recipe.ingredients is an array
+      (recipe.ingredients || []).forEach((ing: Ingredient) => {
         // 1. Check direct match
         const isOwned = pantryNames.some((pName) => isIngredientMatch(ing.name, pName));
         
@@ -291,7 +302,7 @@ export default function App() {
         }
       });
 
-      const totalRequired = recipe.ingredients.length;
+      const totalRequired = (recipe.ingredients || []).length;
       const effectiveOwned = owned.length + substitutable.length; 
       const matchScore = totalRequired === 0 ? 1 : effectiveOwned / totalRequired;
 
@@ -522,11 +533,11 @@ export default function App() {
               Tell us what ingredients you have, and we'll connect you to delicious Asian recipes and the local markets that sell what you're missing.
             </p>
 
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-md space-y-3">
               {pantryItems.length > 0 ? (
                 <button 
                   onClick={handleSuggestFromPantry}
-                  className="w-full mb-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 hover:shadow-xl hover:scale-[1.02] transition flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 hover:shadow-xl hover:scale-[1.02] transition flex items-center justify-center gap-2"
                 >
                   <Lightbulb className="w-5 h-5 text-yellow-200" />
                   Suggest Asian dishes from pantry
@@ -534,27 +545,37 @@ export default function App() {
               ) : (
                  <button
                     onClick={() => setShowPantry(true)}
-                    className="w-full mb-8 py-3 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl font-medium hover:border-emerald-400 dark:hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl font-medium hover:border-emerald-400 dark:hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition flex items-center justify-center gap-2"
                  >
                     <Plus className="w-5 h-5" />
                     Add items to get suggestions
                  </button>
               )}
 
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Popular Dishes</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {CUISINE_SUGGESTIONS.map(c => (
-                  <button 
-                    key={c}
-                    onClick={() => { 
-                        setCuisineQuery(c); 
-                        handleSearch(undefined, c); 
-                    }}
-                    className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:border-emerald-500 dark:hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition shadow-sm"
-                  >
-                    {c}
-                  </button>
-                ))}
+              <button 
+                  onClick={handleFeelingLucky}
+                  className="w-full py-3 bg-purple-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-purple-200 dark:shadow-purple-900/30 hover:shadow-xl hover:scale-[1.02] transition flex items-center justify-center gap-2"
+              >
+                  <Dices className="w-5 h-5 text-purple-200" />
+                  I'm Feeling Lucky
+              </button>
+
+              <div className="pt-5">
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Popular Dishes</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                    {CUISINE_SUGGESTIONS.map(c => (
+                    <button 
+                        key={c}
+                        onClick={() => { 
+                            setCuisineQuery(c); 
+                            handleSearch(undefined, c); 
+                        }}
+                        className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:border-emerald-500 dark:hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition shadow-sm"
+                    >
+                        {c}
+                    </button>
+                    ))}
+                </div>
               </div>
             </div>
           </div>

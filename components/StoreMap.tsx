@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { SavedStore } from '../types';
 import { MapPin, Navigation, ExternalLink, SquareCheck, Plus, ArrowRight, Store, X, Star, Calendar, Filter, LocateFixed, Edit2, Search, ScanEye } from 'lucide-react';
@@ -113,15 +112,15 @@ export const StoreMap: React.FC<StoreMapProps> = ({
     if (filteredItems.size === 0) return stores;
 
     return stores.filter(store => {
-      // The store must have ALL selected filter items
-      return Array.from(filteredItems).every(filterItem => {
-        const ingredients = store.knownIngredients || [];
-        return ingredients.some((rawKnown: string) => {
-           const known = String(rawKnown);
+      // The store must have AT LEAST ONE of the selected filter items (OR logic)
+      return Array.from(filteredItems).some(filterItem => {
+        const ingredients = (store.knownIngredients as unknown as string[]) || [];
+        return ingredients.some((ingredient) => {
+           const ingStr = String(ingredient);
            // Use fuzzy match or simple inclusion
-           return isIngredientMatch(filterItem, known) || 
-           known.toLowerCase().includes(filterItem.toLowerCase()) ||
-           filterItem.toLowerCase().includes(known.toLowerCase());
+           return isIngredientMatch(filterItem, ingStr) || 
+           ingStr.toLowerCase().includes(filterItem.toLowerCase()) ||
+           filterItem.toLowerCase().includes(ingStr.toLowerCase());
         });
       });
     });
@@ -350,16 +349,23 @@ export const StoreMap: React.FC<StoreMapProps> = ({
                                                     {store.address}
                                                 </p>
                                             )}
+
+                                            {/* Notes in List View */}
+                                            {store.notes && (
+                                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 pl-5 italic line-clamp-1">
+                                                    "{store.notes}"
+                                                </p>
+                                            )}
                                             
                                             {/* Inventory Snippet */}
-                                            {store.knownIngredients.length > 0 && (
+                                            {(store.knownIngredients || []).length > 0 && (
                                                 <div className="mt-2 flex flex-wrap gap-1">
-                                                    {store.knownIngredients.map((rawItem: string, i) => {
-                                                        const item = String(rawItem);
+                                                    {(store.knownIngredients as unknown as string[]).map((ingredient, i) => {
+                                                        const ingStr = String(ingredient);
                                                         // Highlight if matches filter
                                                         const isMatch = Array.from(filteredItems).some(f => 
-                                                            isIngredientMatch(f, item) || 
-                                                            item.toLowerCase().includes(f.toLowerCase())
+                                                            isIngredientMatch(f, ingStr) || 
+                                                            ingStr.toLowerCase().includes(f.toLowerCase())
                                                         );
                                                         
                                                         // Only show first 3 unless matching
@@ -371,7 +377,7 @@ export const StoreMap: React.FC<StoreMapProps> = ({
                                                                 ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800'
                                                                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                                                             }`}>
-                                                                {item}
+                                                                {ingStr}
                                                             </span>
                                                         );
                                                     })}

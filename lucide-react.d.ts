@@ -60,4 +60,8 @@ declare module 'lucide-react' {
   export const ScanEye: Icon;
   export const Languages: Icon;
   export const Layers: Icon;
+  export const Mic: Icon;
+  export const MicOff: Icon;
+  export const Dices: Icon;
+  export const Scale: Icon;
 }

@@ -1,20 +1,21 @@
 
 import React, { useState, useRef } from 'react';
 import { COMMON_PANTRY_ITEMS } from '../constants';
-import { Plus, X, Search, Camera, LoaderCircle, CircleAlert, CalendarDays, Trash2, Clock, FileSpreadsheet, ScanBarcode } from 'lucide-react';
+import { Plus, X, Search, Camera, LoaderCircle, CircleAlert, CalendarDays, Trash2, Clock, FileSpreadsheet, ScanBarcode, Scale } from 'lucide-react';
 import { parseReceipt } from '../services/geminiService';
 import { PantryItem } from '../types';
 import { BarcodeScanner } from './BarcodeScanner';
 
 interface PantryManagerProps {
   items: PantryItem[];
-  onAdd: (name: string, expiry?: number) => void;
+  onAdd: (name: string, expiry?: number, quantity?: string) => void;
   onRemove: (name: string) => void;
   onClose: () => void;
 }
 
 export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRemove, onClose }) => {
   const [customInput, setCustomInput] = useState('');
+  const [quantityInput, setQuantityInput] = useState('');
   const [expiryInput, setExpiryInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -26,8 +27,9 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
     e.preventDefault();
     if (customInput.trim()) {
       const expiry = expiryInput ? new Date(expiryInput).getTime() : undefined;
-      onAdd(customInput.trim(), expiry);
+      onAdd(customInput.trim(), expiry, quantityInput.trim());
       setCustomInput('');
+      setQuantityInput('');
       setExpiryInput('');
     }
   };
@@ -129,7 +131,7 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
         {/* Search / Add / Scan */}
         <div className="p-5 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800 flex flex-col gap-3">
           <form onSubmit={handleCustomAdd} className="flex gap-2">
-            <div className="relative flex-1">
+            <div className="relative flex-[2]">
               <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
@@ -140,20 +142,31 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
               />
             </div>
             
-            <div className="relative w-36">
-                <CalendarDays className="absolute left-3 top-3 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+            <div className="relative flex-1">
+                <Scale className="absolute left-3 top-3 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                <input 
+                    type="text"
+                    value={quantityInput}
+                    onChange={(e) => setQuantityInput(e.target.value)}
+                    placeholder="Qty"
+                    className="w-full pl-9 pr-2 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm"
+                />
+            </div>
+
+            <div className="relative w-12 sm:w-32">
+                <CalendarDays className="absolute left-3 top-3 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none hidden sm:block" />
                 <input 
                     type="date"
                     value={expiryInput}
                     onChange={(e) => setExpiryInput(e.target.value)}
-                    className="w-full pl-10 pr-2 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm"
+                    className="w-full sm:pl-10 px-2 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm"
                 />
             </div>
 
             <button 
               type="submit"
               disabled={!customInput.trim()}
-              className="bg-emerald-600 text-white p-2.5 rounded-xl disabled:opacity-50 hover:bg-emerald-700 transition shadow-sm"
+              className="bg-emerald-600 text-white p-2.5 rounded-xl disabled:opacity-50 hover:bg-emerald-700 transition shadow-sm shrink-0"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -229,10 +242,17 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
                         key={item.id}
                         className={`group flex items-center justify-between p-2.5 rounded-xl border transition-all ${getFreshnessColor(item.expiryDate)}`}
                     >
-                        <div className="flex flex-col min-w-0">
-                            <span className="font-semibold text-sm truncate">{item.name}</span>
+                        <div className="flex flex-col min-w-0 flex-1 mr-2">
+                            <div className="flex justify-between items-center">
+                                <span className="font-semibold text-sm truncate">{item.name}</span>
+                                {item.quantity && (
+                                    <span className="text-[10px] font-bold bg-white/50 dark:bg-black/20 px-1.5 py-0.5 rounded ml-2">
+                                        {item.quantity}
+                                    </span>
+                                )}
+                            </div>
                             {item.expiryDate && (
-                                <span className="text-[10px] opacity-80 flex items-center gap-1 font-medium">
+                                <span className="text-[10px] opacity-80 flex items-center gap-1 font-medium mt-0.5">
                                     <Clock className="w-3 h-3" />
                                     {daysLeft && daysLeft < 0 ? 'Expired' : `${daysLeft} days left`}
                                 </span>
@@ -240,7 +260,7 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
                         </div>
                         <button 
                             onClick={() => setItemToRemove(item.name)}
-                            className="p-1.5 hover:bg-black/10 rounded-lg transition"
+                            className="p-1.5 hover:bg-black/10 rounded-lg transition shrink-0"
                         >
                             <Trash2 className="w-4 h-4 opacity-70" />
                         </button>
