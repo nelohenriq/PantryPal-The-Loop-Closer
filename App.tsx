@@ -145,6 +145,12 @@ export default function App() {
   };
 
   // Handlers
+  const goHome = () => {
+    setRecipes([]);
+    setCuisineQuery('');
+    setShowLanding(true);
+  };
+
   const addPantryItem = (name: string, expiry?: number, quantity?: string) => {
     // Premium Gate: Limit free users to 20 items
     if (!userPreferences.isPremium && pantryItems.length >= 20) {
@@ -348,9 +354,9 @@ export default function App() {
 
          if (result.text) {
              const { stores: parsedStores, detectedLocation: detected } = await extractStoreInventory(result.text);
-             setFoundStores(parsedStores);
+             setFoundStores(parsedStores || []); // Defensive empty array
              if (detected) setDetectedLocation(detected);
-             const updated = saveStoreData(parsedStores);
+             const updated = saveStoreData(parsedStores || []);
              setSavedStores(updated);
          }
          setIsLocatingStores(false);
@@ -365,10 +371,10 @@ export default function App() {
 
                if (result.text) {
                  const { stores: parsedStores, detectedLocation: detected } = await extractStoreInventory(result.text);
-                 setFoundStores(parsedStores);
+                 setFoundStores(parsedStores || []); // Defensive empty array
                  if (detected) setDetectedLocation(detected);
                  
-                 const updated = saveStoreData(parsedStores);
+                 const updated = saveStoreData(parsedStores || []);
                  setSavedStores(updated);
                }
                
@@ -451,8 +457,12 @@ export default function App() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 sticky top-0 z-30 border-b border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-200 h-16 flex items-center">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between gap-4 w-full">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="bg-emerald-500 p-2 rounded-lg text-white">
+          <div 
+            className="flex items-center gap-2 shrink-0 cursor-pointer group"
+            onClick={goHome}
+            title="Return to Home"
+          >
+            <div className="bg-emerald-500 p-2 rounded-lg text-white group-hover:bg-emerald-600 transition">
               <ChefHat size={24} />
             </div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight hidden sm:block">PantryPal <span className="text-emerald-500 font-light">Asian</span></h1>

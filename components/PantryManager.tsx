@@ -203,7 +203,7 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
                  </button>
              </div>
 
-             <div className="relative flex-1">
+             <div className="relative flex-1 group">
                  <input 
                     type="file" 
                     ref={csvInputRef} 
@@ -218,6 +218,13 @@ export const PantryManager: React.FC<PantryManagerProps> = ({ items, onAdd, onRe
                    <FileSpreadsheet className="w-4 h-4" />
                    Import CSV
                  </button>
+                 
+                 {/* Format Tooltip */}
+                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition pointer-events-none text-center shadow-xl z-20">
+                    <p className="font-bold mb-1">Format: Name, Date</p>
+                    <p className="opacity-80">e.g. "Rice, 2024-12-31"</p>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900"></div>
+                 </div>
              </div>
           </div>
         </div>
