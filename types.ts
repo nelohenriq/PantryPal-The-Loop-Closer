@@ -95,6 +95,15 @@ export interface UserPreferences {
     dairyFree: boolean;
   };
   allergies: string;
+  spiceTolerance?: 'Mild' | 'Medium' | 'Spicy' | 'Extra Hot';
+  servingSize?: number;
+  appliances?: {
+    wok: boolean;
+    riceCooker: boolean;
+    airFryer: boolean;
+    steamer: boolean;
+    instantPot: boolean;
+  };
   nutritionalGoals: {
     maxCaloriesPerServing?: number;
     minProteinPerServing?: number; 

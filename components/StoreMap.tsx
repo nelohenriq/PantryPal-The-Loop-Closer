@@ -113,10 +113,10 @@ export const StoreMap: React.FC<StoreMapProps> = ({
 
     return stores.filter(store => {
       // The store must have AT LEAST ONE of the selected filter items (OR logic)
-      return Array.from(filteredItems).some(filterItem => {
-        const ingredients = (store.knownIngredients as unknown as string[]) || [];
-        return ingredients.some((ingredient) => {
-           const ingStr = String(ingredient);
+      return Array.from(filteredItems).some((filterItem: string) => {
+        const ingredients = (store.knownIngredients || []) as string[];
+        return ingredients.some((ingredient: string) => {
+           const ingStr = String(ingredient) as string;
            // Use fuzzy match or simple inclusion
            return isIngredientMatch(filterItem, ingStr) || 
            ingStr.toLowerCase().includes(filterItem.toLowerCase()) ||
@@ -360,10 +360,10 @@ export const StoreMap: React.FC<StoreMapProps> = ({
                                             {/* Inventory Snippet */}
                                             {(store.knownIngredients || []).length > 0 && (
                                                 <div className="mt-2 flex flex-wrap gap-1">
-                                                    {(store.knownIngredients as unknown as string[]).map((ingredient, i) => {
-                                                        const ingStr = String(ingredient);
+                                                    {(store.knownIngredients as string[]).map((ingredient: string, i: number) => {
+                                                        const ingStr = String(ingredient) as string;
                                                         // Highlight if matches filter
-                                                        const isMatch = Array.from(filteredItems).some(f => 
+                                                        const isMatch = Array.from(filteredItems).some((f: string) => 
                                                             isIngredientMatch(f, ingStr) || 
                                                             ingStr.toLowerCase().includes(f.toLowerCase())
                                                         );

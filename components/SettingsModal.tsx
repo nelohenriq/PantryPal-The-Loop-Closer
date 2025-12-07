@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { UserPreferences } from '../types';
-import { X, Check, Activity, Flame } from 'lucide-react';
+import { X, Check, Activity, Flame, Thermometer, Users, Utensils } from 'lucide-react';
 
 interface SettingsModalProps {
   preferences: UserPreferences;
@@ -10,7 +10,18 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ preferences, onSave, onClose }) => {
-  const [localPrefs, setLocalPrefs] = React.useState<UserPreferences>(preferences);
+  const [localPrefs, setLocalPrefs] = React.useState<UserPreferences>({
+      ...preferences,
+      appliances: preferences.appliances || {
+          wok: false,
+          riceCooker: false,
+          airFryer: false,
+          steamer: false,
+          instantPot: false
+      },
+      spiceTolerance: preferences.spiceTolerance || 'Medium',
+      servingSize: preferences.servingSize || 2
+  });
 
   const toggleDiet = (key: keyof UserPreferences['dietary']) => {
     setLocalPrefs(prev => ({
@@ -20,6 +31,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ preferences, onSav
         [key]: !prev.dietary[key]
       }
     }));
+  };
+
+  const toggleAppliance = (key: keyof NonNullable<UserPreferences['appliances']>) => {
+      setLocalPrefs(prev => ({
+          ...prev,
+          appliances: {
+              ...prev.appliances!,
+              [key]: !prev.appliances![key]
+          }
+      }));
   };
 
   const handleAllergiesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -44,7 +65,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ preferences, onSav
       <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all border border-gray-200 dark:border-gray-800">
         {/* Header */}
         <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Dietary Preferences</h2>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Preferences</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition">
             <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
@@ -76,6 +97,82 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ preferences, onSav
                   {localPrefs.dietary[key as keyof UserPreferences['dietary']] && <Check className="w-4 h-4 text-emerald-500" />}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Spice & Serving */}
+          <div className="grid grid-cols-1 gap-4">
+             <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <Thermometer className="w-4 h-4" /> Spice Tolerance
+                </h3>
+                <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+                    {['Mild', 'Medium', 'Spicy', 'Extra Hot'].map((level) => (
+                        <button
+                            key={level}
+                            onClick={() => setLocalPrefs(prev => ({ ...prev, spiceTolerance: level as any }))}
+                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+                                localPrefs.spiceTolerance === level 
+                                ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm' 
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                            }`}
+                        >
+                            {level}
+                        </button>
+                    ))}
+                </div>
+             </div>
+
+             <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <Users className="w-4 h-4" /> Serving Size
+                </h3>
+                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">People to feed:</span>
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => setLocalPrefs(prev => ({ ...prev, servingSize: Math.max(1, (prev.servingSize || 2) - 1) }))}
+                            className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center font-bold hover:bg-gray-50"
+                        >
+                            -
+                        </button>
+                        <span className="font-bold w-4 text-center">{localPrefs.servingSize || 2}</span>
+                        <button 
+                            onClick={() => setLocalPrefs(prev => ({ ...prev, servingSize: (prev.servingSize || 2) + 1 }))}
+                            className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center font-bold hover:bg-gray-50"
+                        >
+                            +
+                        </button>
+                    </div>
+                </div>
+             </div>
+          </div>
+
+          {/* Kitchen Equipment */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider flex items-center gap-2">
+                <Utensils className="w-4 h-4" /> Kitchen Equipment
+            </h3>
+            <div className="flex flex-wrap gap-2">
+                {[
+                    { key: 'wok', label: 'Wok' },
+                    { key: 'riceCooker', label: 'Rice Cooker' },
+                    { key: 'airFryer', label: 'Air Fryer' },
+                    { key: 'steamer', label: 'Steamer' },
+                    { key: 'instantPot', label: 'Instant Pot' }
+                ].map(({ key, label }) => (
+                    <button
+                        key={key}
+                        onClick={() => toggleAppliance(key as any)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${
+                            localPrefs.appliances![key as keyof typeof localPrefs.appliances]
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
+                        }`}
+                    >
+                        {label}
+                    </button>
+                ))}
             </div>
           </div>
 

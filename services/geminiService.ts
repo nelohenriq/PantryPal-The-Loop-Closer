@@ -47,6 +47,26 @@ export const generateRecipes = async (
     ? `NUTRITIONAL GOALS: The recipes MUST meet these targets: ${nutritionString.join(", ")}.` 
     : "";
 
+  // New Preferences: Spice, Serving Size, Appliances
+  const spiceLevel = preferences.spiceTolerance 
+    ? `SPICE LEVEL: The user prefers ${preferences.spiceTolerance} heat. Adjust chili/spices accordingly.` 
+    : "";
+  
+  const servingSize = preferences.servingSize 
+    ? `SERVING SIZE: Scale ingredient quantities for ${preferences.servingSize} people.` 
+    : "SERVING SIZE: Scale ingredient quantities for 2 people.";
+
+  const availableAppliances = [];
+  if (preferences.appliances?.wok) availableAppliances.push("Wok");
+  if (preferences.appliances?.riceCooker) availableAppliances.push("Rice Cooker");
+  if (preferences.appliances?.airFryer) availableAppliances.push("Air Fryer");
+  if (preferences.appliances?.steamer) availableAppliances.push("Steamer");
+  if (preferences.appliances?.instantPot) availableAppliances.push("Instant Pot");
+  
+  const applianceString = availableAppliances.length > 0
+    ? `APPLIANCES: The user has access to: ${availableAppliances.join(", ")}. Suggest recipes or methods that utilize these tools if authentic and appropriate.`
+    : "";
+
   // Seasonal Awareness
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const seasonalString = `It is currently ${currentMonth}. Prioritize ingredients that are typically in season during this month for authentic flavor and cost-efficiency.`;
@@ -67,6 +87,9 @@ export const generateRecipes = async (
     ${allergyString}
     ${nutritionConstraint}
     ${seasonalString}
+    ${spiceLevel}
+    ${servingSize}
+    ${applianceString}
     
     Guidelines:
     1. Prioritize recipes that utilize the user's existing pantry ingredients where possible.
@@ -141,7 +164,8 @@ export const generateRecipes = async (
   if (!text) return [];
   
   try {
-    return JSON.parse(text) as Recipe[];
+    const data = JSON.parse(text);
+    return Array.isArray(data) ? data : [];
   } catch (e) {
     console.error("Failed to parse recipes", e);
     return [];
@@ -301,9 +325,12 @@ export const extractStoreInventory = async (responseText: string): Promise<{ sto
 
   try {
     const raw = JSON.parse(text);
+    if (!raw || typeof raw !== 'object') return { stores: [], detectedLocation: "" };
+
     const stores = (raw.stores || []).map((r: any) => ({
       ...r,
       lastUpdated: Date.now(),
+      knownIngredients: r.knownIngredients || [], // Ensure array
       // Use a consistent, reliable placeholder service
       imageUrl: `https://placehold.co/600x400/e2e8f0/475569?text=${encodeURIComponent(r.name)}`
     }));

@@ -64,6 +64,15 @@ export default function App() {
       dairyFree: false
     },
     allergies: '',
+    spiceTolerance: 'Medium',
+    servingSize: 2,
+    appliances: {
+      wok: false,
+      riceCooker: false,
+      airFryer: false,
+      steamer: false,
+      instantPot: false
+    },
     nutritionalGoals: {
       maxCaloriesPerServing: undefined,
       minProteinPerServing: undefined
@@ -76,10 +85,19 @@ export default function App() {
       const savedPrefs = localStorage.getItem('userPreferences');
       if (savedPrefs) {
           const parsed = JSON.parse(savedPrefs);
-          // Ensure ratings exists for legacy data
+          // Ensure ratings and new fields exist for legacy data
           setUserPreferences({
              ...parsed,
-             ratings: parsed.ratings || {}
+             ratings: parsed.ratings || {},
+             spiceTolerance: parsed.spiceTolerance || 'Medium',
+             servingSize: parsed.servingSize || 2,
+             appliances: parsed.appliances || {
+                wok: false,
+                riceCooker: false,
+                airFryer: false,
+                steamer: false,
+                instantPot: false
+             }
           });
       }
   }, []);
@@ -460,7 +478,7 @@ export default function App() {
           <div 
             className="flex items-center gap-2 shrink-0 cursor-pointer group"
             onClick={goHome}
-            title="Return to Home"
+            title="Back to Home"
           >
             <div className="bg-emerald-500 p-2 rounded-lg text-white group-hover:bg-emerald-600 transition">
               <ChefHat size={24} />

@@ -64,4 +64,8 @@ declare module 'lucide-react' {
   export const MicOff: Icon;
   export const Dices: Icon;
   export const Scale: Icon;
+  export const HelpCircle: Icon;
+  export const Thermometer: Icon;
+  export const Users: Icon;
+  export const Utensils: Icon;
 }

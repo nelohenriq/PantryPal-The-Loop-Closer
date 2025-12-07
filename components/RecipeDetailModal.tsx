@@ -65,6 +65,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
 
   const groupByCategory = (items: Ingredient[]) => {
     const groups: Record<string, Ingredient[]> = {};
+    if (!items) return groups;
     items.forEach(item => {
       const cat = item.category || 'Other';
       if (!groups[cat]) groups[cat] = [];
@@ -176,7 +177,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
                       <Lightbulb className="w-4 h-4" /> Chef's Tips
                    </h3>
                    <ul className="space-y-2">
-                      {recipe.tips.map((tip, idx) => (
+                      {(recipe.tips || []).map((tip, idx) => (
                          <li key={idx} className="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
                             <span className="text-amber-500 font-bold">•</span>
                             {tip}
@@ -192,7 +193,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
                 
                 <div className="space-y-6">
                    {/* Missing Ingredients - High Priority */}
-                   {missingIngredients.length > 0 && (
+                   {missingIngredients && missingIngredients.length > 0 && (
                       <div>
                          <div className="flex justify-between items-center mb-3">
                             <h4 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-2">
@@ -238,7 +239,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
                    )}
 
                    {/* Substitutable Ingredients - Medium Priority */}
-                   {substitutableIngredients.length > 0 && (
+                   {substitutableIngredients && substitutableIngredients.length > 0 && (
                       <div>
                          <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                             <RefreshCw className="w-4 h-4" /> Substitutions ({substitutableIngredients.length})
@@ -293,7 +294,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
                    )}
 
                    {/* Owned Ingredients - Low Priority */}
-                   {ownedIngredients.length > 0 && (
+                   {ownedIngredients && ownedIngredients.length > 0 && (
                       <div>
                          <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                             <Check className="w-4 h-4" /> In Pantry ({ownedIngredients.length})
@@ -346,7 +347,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
                     </button>
                 </div>
                 <ol className="space-y-6">
-                   {recipe.instructions.map((step, idx) => (
+                   {(recipe.instructions || []).map((step, idx) => (
                       <li key={idx} className="flex gap-4 group">
                          <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-bold text-sm border border-emerald-200 dark:border-emerald-800 mt-0.5">
                             {idx + 1}
@@ -360,7 +361,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ match, use
 
           {/* Footer Actions */}
           <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 flex gap-3 shrink-0">
-             {missingIngredients.length > 0 ? (
+             {missingIngredients && missingIngredients.length > 0 ? (
                 <button 
                   onClick={() => { onClose(); onShop(missingIngredients); }}
                   className="flex-1 py-3 bg-gray-900 dark:bg-gray-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-800 dark:hover:bg-gray-600 transition shadow-lg shadow-gray-200 dark:shadow-none active:scale-95 duration-200"
