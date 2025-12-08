@@ -71,4 +71,5 @@ declare module 'lucide-react' {
   export const Timer: Icon;
   export const Pause: Icon;
   export const RotateCcw: Icon;
+  export const CircleX: Icon;
 }

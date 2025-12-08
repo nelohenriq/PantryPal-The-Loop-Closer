@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { SavedStore } from '../types';
 import { MapPin, Navigation, ExternalLink, SquareCheck, Plus, ArrowRight, Store, X, Star, Calendar, Filter, LocateFixed, Edit2, Search, ScanEye } from 'lucide-react';
@@ -53,6 +54,15 @@ export const StoreMap: React.FC<StoreMapProps> = ({
         const next = new Set(prev);
         if (next.has(item)) next.delete(item);
         else next.add(item);
+        return next;
+    });
+  };
+
+  const handleConfirmMatch = (itemName: string) => {
+    // Check the item off the list, but don't uncheck it if already checked
+    setCheckedItems(prev => {
+        const next = new Set(prev);
+        next.add(itemName);
         return next;
     });
   };
@@ -488,10 +498,7 @@ export const StoreMap: React.FC<StoreMapProps> = ({
         <LabelDecoder 
             missingIngredients={missingIngredients}
             onClose={() => setShowLabelDecoder(false)}
-            onAddFromScan={(item) => {
-                // Future enhancement: Add to bought list
-                setShowLabelDecoder(false);
-            }}
+            onConfirmMatch={handleConfirmMatch}
         />
       )}
 

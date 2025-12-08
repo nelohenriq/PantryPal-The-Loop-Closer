@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Recipe, GroundingChunk, SavedStore, UserPreferences } from "../types";
+import { Recipe, GroundingChunk, SavedStore, UserPreferences, LabelAnalysis } from "../types";
 
 // Initialize Gemini Client
 const getClient = () => {
@@ -396,7 +396,7 @@ export const parseReceipt = async (imageFile: File): Promise<string[]> => {
   }
 };
 
-export const identifyProductLabel = async (imageFile: File, searchingFor: string[]): Promise<string> => {
+export const identifyProductLabel = async (imageFile: File, searchingFor: string[]): Promise<LabelAnalysis> => {
   const ai = getClient();
 
   const base64Data = await new Promise<string>((resolve, reject) => {
@@ -408,21 +408,18 @@ export const identifyProductLabel = async (imageFile: File, searchingFor: string
   const base64Content = base64Data.split(',')[1];
 
   const shoppingContext = searchingFor.length > 0 
-    ? `The user is specifically looking for these items: ${searchingFor.join(", ")}. Check if this product matches any of them.` 
+    ? `The user's shopping list is: [${searchingFor.join(", ")}]. Determine if this product matches any item on the list. The 'matchedIngredient' field in the JSON should be the exact string from the shopping list if a match is found.` 
     : "Identify this product.";
 
   const prompt = `
-    You are an expert Asian grocery identifier. Analyze this image of a product label.
+    You are an expert Asian grocery identifier. Analyze this image of a product label and return a structured JSON object.
     
-    1. Identify the **Product Name** (in English and Original Language if visible).
-    2. Explain **What it is** and **How to use it**.
-    3. **Translate** any key text on the label that helps identify flavor, spicy level, or usage.
-    4. If it is a specific variation (e.g. Light vs Dark Soy Sauce, Gochujang vs Ssamjang), clarify strictly what it is.
-    
-    ${shoppingContext}
-    
-    Format the response in Markdown with clear headings. 
-    Use emojis to make it friendly.
+    1.  **Identify**: What is the precise name of this product? Include brand and type (e.g., "Kikkoman Light Soy Sauce", "Lao Gan Ma Chili Crisp").
+    2.  **Contextual Match**: ${shoppingContext} Your matching should be smart (e.g., if the user needs "Soy Sauce", "Kikkoman Light Soy Sauce" is a match).
+    3.  **Describe**: Briefly explain what it is.
+    4.  **Analyze Flavor**: List 3-4 keywords for its flavor profile (e.g., "Salty", "Umami", "Slightly Sweet", "Spicy", "Fermented").
+    5.  **Provide Tips**: Give a concise usage tip.
+    6.  **Fun Fact**: Add an interesting cultural or historical fact.
   `;
 
   const response = await ai.models.generateContent({
@@ -432,8 +429,32 @@ export const identifyProductLabel = async (imageFile: File, searchingFor: string
         { inlineData: { mimeType: imageFile.type, data: base64Content } },
         { text: prompt }
       ]
+    },
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          isMatch: { type: Type.BOOLEAN, description: "True if the product is a good match for an item on the user's shopping list." },
+          matchedIngredient: { type: Type.STRING, description: "The exact item from the shopping list that was matched. Null if no match." },
+          productName: { type: Type.STRING, description: "The identified English name of the product." },
+          productNameOriginal: { type: Type.STRING, description: "The product name in its original language, if visible." },
+          description: { type: Type.STRING, description: "A brief explanation of the product." },
+          flavorProfile: { type: Type.ARRAY, items: { type: Type.STRING }, description: "3-4 keywords describing the taste." },
+          usageTips: { type: Type.STRING, description: "A concise tip on how to use it." },
+          funFact: { type: Type.STRING, description: "An interesting fact about the product or its origins." }
+        }
+      }
     }
   });
 
-  return response.text || "Could not identify product.";
+  const text = response.text;
+  if (!text) throw new Error("Failed to analyze label.");
+
+  try {
+    return JSON.parse(text) as LabelAnalysis;
+  } catch (e) {
+    console.error("Failed to parse label analysis", e);
+    throw new Error("Could not parse AI response.");
+  }
 };

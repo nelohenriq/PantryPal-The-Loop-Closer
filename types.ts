@@ -124,3 +124,15 @@ export interface ShoppingEvent {
   itemCount: number;
   items: string[];
 }
+
+// "Wow" Feature: Label Decoder
+export interface LabelAnalysis {
+    isMatch: boolean;
+    matchedIngredient?: string; // The item from the shopping list that it matched
+    productName: string;
+    productNameOriginal?: string;
+    description: string;
+    flavorProfile: string[];
+    usageTips: string;
+    funFact?: string;
+}

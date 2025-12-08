@@ -1,18 +1,20 @@
 
 import React, { useRef, useState } from 'react';
-import { X, Camera, ScanEye, Languages, LoaderCircle, Check, ArrowRight } from 'lucide-react';
+import { X, Camera, ScanEye, Languages, LoaderCircle, Check, ArrowRight, CircleCheck, CircleX } from 'lucide-react';
 import { identifyProductLabel } from '../services/geminiService';
+import { LabelAnalysis } from '../types';
 
 interface LabelDecoderProps {
   onClose: () => void;
   missingIngredients?: string[];
-  onAddFromScan?: (itemName: string) => void;
+  onConfirmMatch?: (itemName: string) => void;
 }
 
-export const LabelDecoder: React.FC<LabelDecoderProps> = ({ onClose, missingIngredients = [], onAddFromScan }) => {
+export const LabelDecoder: React.FC<LabelDecoderProps> = ({ onClose, missingIngredients = [], onConfirmMatch }) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<LabelAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,15 +28,23 @@ export const LabelDecoder: React.FC<LabelDecoderProps> = ({ onClose, missingIngr
 
     setLoading(true);
     setAnalysis(null);
+    setError(null);
 
     try {
         const result = await identifyProductLabel(file, missingIngredients);
         setAnalysis(result);
     } catch (err) {
-        setAnalysis("Failed to analyze image. Please try again.");
+        setError("Failed to analyze image. Please try again.");
     } finally {
         setLoading(false);
     }
+  };
+
+  const handleFoundIt = () => {
+    if (analysis?.isMatch && analysis.matchedIngredient && onConfirmMatch) {
+      onConfirmMatch(analysis.matchedIngredient);
+    }
+    onClose();
   };
 
   return (
@@ -44,7 +54,7 @@ export const LabelDecoder: React.FC<LabelDecoderProps> = ({ onClose, missingIngr
         {/* Header */}
         <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-white dark:bg-gray-900 z-10">
             <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <ScanEye className="w-5 h-5 text-emerald-500" /> Snap-to-Translate
+                <ScanEye className="w-5 h-5 text-emerald-500" /> Label Decoder
             </h3>
             <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
                 <X className="w-5 h-5 text-gray-500" />
@@ -62,6 +72,7 @@ export const LabelDecoder: React.FC<LabelDecoderProps> = ({ onClose, missingIngr
                             onClick={() => {
                                 setImagePreview(null);
                                 setAnalysis(null);
+                                setError(null);
                                 if (fileInputRef.current) fileInputRef.current.value = '';
                             }}
                             className="absolute bottom-2 right-2 px-3 py-1 bg-black/50 text-white text-xs rounded-full backdrop-blur-md hover:bg-black/70 transition"
@@ -78,7 +89,7 @@ export const LabelDecoder: React.FC<LabelDecoderProps> = ({ onClose, missingIngr
                             <Camera className="w-8 h-8" />
                         </div>
                         <p className="font-medium text-center">Tap to Scan Label</p>
-                        <p className="text-xs opacity-70 text-center max-w-[200px]">Take a photo of a jar, bottle, or package to translate and identify.</p>
+                        <p className="text-xs opacity-70 text-center max-w-[200px]">Is this the right soy sauce? Let's find out.</p>
                     </div>
                 )}
                 <input 
@@ -97,35 +108,77 @@ export const LabelDecoder: React.FC<LabelDecoderProps> = ({ onClose, missingIngr
                     <LoaderCircle className="w-10 h-10 animate-spin text-emerald-500" />
                     <div className="space-y-1">
                         <p className="font-bold text-gray-900 dark:text-white">Analyzing Label...</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Translating text & identifying ingredients</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Cross-referencing your shopping list</p>
                     </div>
                 </div>
+            ) : error ? (
+                <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
+                    <p className="text-red-600 dark:text-red-400">{error}</p>
+                </div>
             ) : analysis ? (
-                <div className="animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex items-center gap-2 mb-3 text-emerald-600 dark:text-emerald-400 font-bold uppercase text-xs tracking-wider">
-                        <Languages className="w-4 h-4" /> AI Analysis
-                    </div>
-                    <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm prose dark:prose-invert prose-sm max-w-none">
-                        <div className="markdown-content whitespace-pre-wrap leading-relaxed text-gray-800 dark:text-gray-200">
-                            {analysis}
+                <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-4">
+                    
+                    {/* Verdict */}
+                    <div className={`p-4 rounded-xl border-2 flex items-center gap-3 ${
+                        analysis.isMatch 
+                        ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500' 
+                        : 'bg-red-50 dark:bg-red-900/20 border-red-500'
+                    }`}>
+                        {analysis.isMatch ? 
+                            <CircleCheck className="w-8 h-8 text-emerald-500 shrink-0" /> : 
+                            <CircleX className="w-8 h-8 text-red-500 shrink-0" />
+                        }
+                        <div>
+                           <h3 className="font-bold text-lg leading-tight">
+                                {analysis.isMatch ? "Match Found!" : "Not a Match"}
+                           </h3>
+                           <p className="text-sm">
+                                {analysis.isMatch 
+                                    ? `This is a good match for "${analysis.matchedIngredient}".` 
+                                    : "This doesn't seem to match any item on your list."}
+                           </p>
                         </div>
                     </div>
 
-                    {/* Quick Actions (Future implementation) */}
-                    <div className="mt-4 flex gap-2">
-                       {onAddFromScan && (
-                           <button 
-                                onClick={() => {
-                                    // Extract simple name from analysis if possible, or trigger manual add
-                                    // For now just close, user has the info
-                                    onClose();
-                                }}
-                                className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 dark:shadow-none"
-                           >
-                               Got it!
-                           </button>
-                       )}
+                    {/* Details Card */}
+                    <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
+                        <h4 className="text-lg font-bold">{analysis.productName}</h4>
+                        {analysis.productNameOriginal && <p className="text-sm text-gray-500 -mt-3">{analysis.productNameOriginal}</p>}
+                        
+                        <p className="text-sm">{analysis.description}</p>
+                        
+                        <div>
+                            <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Flavor Profile</h5>
+                            <div className="flex flex-wrap gap-2">
+                                {analysis.flavorProfile.map(f => (
+                                    <span key={f} className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-xs font-medium rounded">{f}</span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Usage Tip</h5>
+                            <p className="text-sm italic">"{analysis.usageTips}"</p>
+                        </div>
+                        
+                        {analysis.funFact && (
+                             <p className="text-xs pt-3 border-t border-gray-100 dark:border-gray-800 text-gray-500">
+                                <strong>Did you know?</strong> {analysis.funFact}
+                             </p>
+                        )}
                     </div>
+                    
+                    {/* Action Button */}
+                     <button 
+                        onClick={handleFoundIt}
+                        className={`w-full py-3 rounded-xl font-bold text-white transition shadow-lg hover:scale-105 active:scale-100 ${
+                            analysis.isMatch 
+                            ? 'bg-emerald-600 shadow-emerald-200 dark:shadow-emerald-900/30' 
+                            : 'bg-gray-500 shadow-gray-200 dark:shadow-gray-900/30'
+                        }`}
+                     >
+                        {analysis.isMatch ? "Found It! Add to Cart" : "Got it"}
+                     </button>
                 </div>
             ) : null}
 
