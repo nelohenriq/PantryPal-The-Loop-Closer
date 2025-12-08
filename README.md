@@ -1,96 +1,109 @@
 # PantryPal: Asian Cuisine Edition 🍜
 
-Your AI-powered sous-chef and shopping assistant, specialized in authentic Asian cuisine. PantryPal helps you bridge the gap between "What do I have?" and "What's for dinner?" by intelligently matching your pantry ingredients to delicious recipes and guiding you to the local stores that have what you're missing.
+**PantryPal** is an intelligent, AI-powered culinary assistant designed specifically for Asian cuisine enthusiasts. It bridges the gap between your kitchen inventory and authentic Asian recipes, helping you cook delicious meals with what you have and guiding you to specific local markets for what you need.
 
 ## ✨ Key Features
 
-### 🍳 Intelligent Recipe Generation
-- **Pantry-First Approach**: Generates recipes based on what you already own to minimize waste.
-- **Asian Cuisine Focus**: Specialized prompts ensuring authentic suggestions for Korean, Japanese, Thai, Vietnamese, Chinese, and South Asian dishes.
-- **Dietary Customization**: Full support for Vegan, Vegetarian, Gluten-Free, and Dairy-Free preferences, plus strict allergy exclusions.
-- **Visuals & Nutrition**: AI-generated photorealistic images of dishes and estimated nutritional breakdowns (Calories, Macros).
+### 🧠 Intelligent Recipe Engine
+*   **Pantry-First Generation**: Creates recipes based on your existing ingredients to minimize food waste.
+*   **Asian Cuisine Focus**: Specialized AI prompts for authentic Korean, Japanese, Thai, Vietnamese, Chinese, and South Asian dishes.
+*   **Dual Mode Suggestions**:
+    *   **Meals**: Ready-to-eat dishes (e.g., *Kimchi Jjigae*).
+    *   **Base Components**: Instructions to make staples from scratch (e.g., *Homemade Kimchi*).
+*   **"I'm Feeling Lucky"**: One-click generation of a unique, highly-rated dish based on your preferences.
+*   **Visuals & Data**: AI-generated photorealistic images and calculated nutritional macros (Calories, Protein, Carbs, Fat) for every recipe.
 
-### 🛒 Smart Shopping & Knowledge Base
-- **Gap Analysis**: Automatically identifies exactly which ingredients you are missing for a recipe.
-- **Store Locator**: Uses **Google Maps Grounding** to find specialized Asian markets (e.g., H-Mart, 99 Ranch) near you that stock specific missing items.
-- **Local Knowledge Base**: "Learns" and saves which stores carry which ingredients over time, building a personal local database in your browser.
-- **Interactive Checklist**: A digital shopping list that automatically moves checked-off items into your pantry.
+### ⚙️ Deep Personalization
+*   **Dietary Restrictions**: Toggle Vegan, Vegetarian, Gluten-Free, or Dairy-Free modes.
+*   **Allergy Safety**: Strict exclusion of specific allergens defined in settings.
+*   **Advanced Preferences**:
+    *   **Spice Tolerance**: Adjust heat levels from *Mild* to *Extra Hot*.
+    *   **Serving Size**: Scale recipes automatically (1-6+ people).
+    *   **Kitchen Equipment**: Tell the AI if you have a Wok, Rice Cooker, Air Fryer, Steamer, or Instant Pot to get optimized cooking methods.
+*   **Nutritional Goals**: Set targets for Max Calories or Min Protein per serving.
+
+### 🛒 Smart Shopping & Store Locator
+*   **Gap Analysis**: Automatically calculates missing ingredients for any recipe.
+*   **AI Store Locator**: Uses **Google Maps Grounding** to find specialized Asian markets (e.g., H-Mart, 99 Ranch, Patel Brothers) near you.
+*   **Real-Time Inventory Estimates**: The AI analyzes store data to predict which specific ingredients are "In Stock" at each location.
+*   **Store Knowledge Base**: The app "learns" as you search, building a local directory of stores and their confirmed inventory.
+*   **Interactive Shopping List**: Filter stores by specific items on your list and check off items to move them directly to your pantry.
 
 ### 🏠 Pantry Management
-- **Receipt Scanning**: Upload a photo of your grocery receipt, and the AI extracts ingredients to populate your pantry automatically.
-- **Fuzzy Matching**: Advanced logic handles variations like "2 lbs Bok Choy" vs "Bok Choy" or "Soy Sauce" vs "Light Soy Sauce".
+*   **Receipt Scanning**: Snap a photo of a grocery receipt to automatically extract and categorize ingredients.
+*   **Barcode Scanning**: Use the device camera to scan product barcodes (UPC/EAN) for quick entry.
+*   **CSV Import**: Bulk import inventory using a simple `Name, Date` format.
+*   **Expiration Tracking**: Color-coded freshness indicators (Green/Yellow/Red) to prevent spoilage.
 
 ### 👨‍🍳 Chef Mode
-- **Distraction-Free Cooking**: A step-by-step, large-text interface designed to be used while your hands are busy cooking.
+*   **Cooking View**: A distraction-free, large-text interface designed for use while cooking.
+*   **Voice Control**: Hands-free navigation. Say **"Next"**, **"Back"**, **"Read"**, or **"Finish"** to control steps without touching the screen with messy hands.
+*   **Text-to-Speech**: Listen to ingredient lists and instructions for better accessibility and pronunciation help.
+
+### 🔍 Utility Tools
+*   **Snap-to-Translate (Label Decoder)**: Take a photo of an ingredient label (e.g., a jar of sauce in a foreign language). The AI identifies the product, explains how to use it, and translates key text.
+*   **Beverage Pairing**: Get AI-curated drink recommendations (Sake, Tea, Beer, Wine) that perfectly complement the flavor profile of your dish.
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 19, TypeScript, Tailwind CSS
-- **AI Models**: 
-  - `gemini-2.5-flash`: Logic, recipe generation, store extraction, receipt parsing.
-  - `gemini-2.5-flash-image`: Food image generation.
-  - **Google Maps Grounding**: Real-time store location and verification.
-- **Icons**: Lucide React
-- **Persistence**: LocalStorage (for Pantry, Settings, and Store Knowledge Base)
+*   **Frontend**: React 19, TypeScript, Tailwind CSS
+*   **AI Integration**: Google GenAI SDK (`@google/genai`)
+    *   **Gemini 2.5 Flash**: Core logic, recipe generation, receipt/label vision, store extraction.
+    *   **Gemini 2.5 Flash Image**: Photorealistic food image generation.
+    *   **Google Maps Grounding**: Real-time location search and verification.
+*   **Vision & Audio**:
+    *   `html5-qrcode`: Barcode scanning integration.
+    *   `SpeechRecognition` API: Browser-native voice commands.
+    *   `SpeechSynthesis` API: Text-to-speech functionality.
+*   **Icons**: Lucide React
+*   **State Persistence**: LocalStorage (Pantry, Settings, Favorites, Store Knowledge Base, Analytics).
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-
-- Node.js (v18+)
-- A **Google Gemini API Key** (Paid tier required for Grounding/Search features).
+1.  **Node.js** (v18 or higher)
+2.  A **Google Gemini API Key** (Paid tier recommended for Maps Grounding/Search features).
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/pantrypal-asian.git
-   cd pantrypal-asian
-   ```
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/yourusername/pantrypal-asian.git
+    cd pantrypal-asian
+    ```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
 
-3. **Configure API Key**
-   Create a `.env` file in the root directory and add your API key:
-   ```env
-   API_KEY=your_google_gemini_api_key_here
-   ```
+3.  **Configure API Key**
+    Create a `.env` file in the root directory:
+    ```env
+    API_KEY=your_actual_google_gemini_api_key
+    ```
 
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
+4.  **Run the development server**
+    ```bash
+    npm run dev
+    ```
 
-## 📱 How to Use
+## 📱 User Guide
 
-1. **Stock Your Pantry**: 
-   - Click "Pantry" in the top right.
-   - Manually type items (e.g., "Gochujang", "Rice") or click the Camera icon to scan a receipt.
-2. **Set Preferences**:
-   - Click the **Settings** (Gear icon) to set dietary restrictions (e.g., "Vegetarian") or allergies (e.g., "Peanuts").
-3. **Find Recipes**:
-   - Enter a craving (e.g., "Spicy Noodle Soup") or click "Suggest Asian dishes from pantry".
-   - Filter by "Cook Now" to see recipes you can make immediately.
-4. **Shop**:
-   - If a recipe has missing ingredients, click **Shop**.
-   - The app will locate nearby stores and tell you exactly what is in stock where.
-   - As you buy items, check them off to add them to your pantry.
-5. **Cook**:
-   - Click **Cook** (or the Play icon) to enter **Chef Mode** for a guided cooking experience.
-
-## 📂 Project Structure
-
-- `src/App.tsx`: Main application controller and layout.
-- `src/services/geminiService.ts`: Core AI logic (Recipes, Images, Receipt Parsing, Store Finding).
-- `src/components/`:
-  - `RecipeCard.tsx`: Displays recipe match score and missing ingredients.
-  - `PantryManager.tsx`: Modal for managing inventory.
-  - `StoreMap.tsx`: Interface for finding stores and managing the shopping list.
-  - `CookingMode.tsx`: Step-by-step view.
-- `src/utils/ingredientMatching.ts`: Normalization and fuzzy matching logic.
+1.  **Onboarding**: Click "Get Started" to enter the app.
+2.  **Stock Pantry**: Click the **Pantry** button. Add items manually, scan a receipt, or scan a barcode.
+3.  **Configure Settings**: Click the **Gear** icon. Set your spice tolerance, available appliances (e.g., Rice Cooker), and dietary restrictions.
+4.  **Discover Recipes**:
+    *   Type a craving (e.g., "Spicy Noodles").
+    *   Click **"Suggest from Pantry"** for AI recommendations based on what you have.
+    *   Click **"I'm Feeling Lucky"** for a surprise high-rated dish.
+5.  **Shop**:
+    *   Select a recipe. Click **Shop** to see missing items.
+    *   The map shows nearby stores that likely have these items.
+    *   Use the **Label Scanner** in the store if you aren't sure about a product.
+6.  **Cook**:
+    *   Click **Cook** to enter Chef Mode.
+    *   Click "Voice Off" to enable microphone permissions and use voice commands like "Next Step".
 
 ## 📄 License
 

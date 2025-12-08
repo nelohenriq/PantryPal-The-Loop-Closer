@@ -68,4 +68,7 @@ declare module 'lucide-react' {
   export const Thermometer: Icon;
   export const Users: Icon;
   export const Utensils: Icon;
+  export const Timer: Icon;
+  export const Pause: Icon;
+  export const RotateCcw: Icon;
 }

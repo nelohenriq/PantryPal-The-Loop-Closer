@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Recipe } from '../types';
-import { X, ArrowRight, ArrowLeft, CircleCheck, ChefHat, Mic, MicOff, Volume2 } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, CircleCheck, ChefHat, Mic, MicOff, Volume2, Timer, Play, Pause, RotateCcw } from 'lucide-react';
 
 interface CookingModeProps {
   recipe: Recipe;
@@ -13,7 +12,13 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onClose, onCom
   const [currentStep, setCurrentStep] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  
+  // Timer State
+  const [activeTimers, setActiveTimers] = useState<Record<number, { remaining: number; isRunning: boolean; original: number }>>({});
+  
   const recognitionRef = useRef<any>(null);
+  // FIX: In a browser environment, setInterval returns a number, not a NodeJS.Timeout object.
+  const timerIntervalRef = useRef<number | null>(null);
 
   const steps = recipe.instructions;
   const isFirst = currentStep === 0;
@@ -33,29 +38,22 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onClose, onCom
             const command = lastResult[0].transcript.trim().toLowerCase();
             setTranscript(command);
             
-            // Clear transcript after a delay
             setTimeout(() => setTranscript(''), 2000);
 
             if (command.includes('next') || command.includes('forward')) {
                 setCurrentStep(prev => Math.min(steps.length - 1, prev + 1));
             } else if (command.includes('back') || command.includes('previous')) {
                 setCurrentStep(prev => Math.max(0, prev - 1));
-            } else if (command.includes('read') || command.includes('repeat')) {
-                speakStep(steps[currentStep]); // Need access to current step state, effect dependency handles this?
-                // Actually inside callback 'currentStep' might be stale if not handled carefully.
-                // We rely on the button click below for reliable speaking, or ref.
             } else if (command.includes('finish') || command.includes('done')) {
                  if (isLast) handleFinish();
             }
         };
 
         recognitionRef.current.onerror = (event: any) => {
-            console.error("Speech recognition error", event.error);
             setIsListening(false);
         };
         
         recognitionRef.current.onend = () => {
-             // Auto-restart if it was supposed to be listening
              if (isListening) {
                  try {
                     recognitionRef.current.start();
@@ -65,11 +63,38 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onClose, onCom
              }
         };
     }
-  }, [steps.length, isLast]); // Note: Stale closure on 'currentStep' in onresult is a classic issue. 
-                             // For simplicity in this demo, we assume 'next'/'back' use functional updates. 
-                             // 'read' command might read the wrong step if not fixed with a ref, but simple navigation works.
+  }, [steps.length, isLast]);
 
-  // Toggle Listening
+  // Timer Tick Logic
+  useEffect(() => {
+    timerIntervalRef.current = window.setInterval(() => {
+        setActiveTimers(prev => {
+            const next = { ...prev };
+            let hasChanges = false;
+            
+            Object.keys(next).forEach(key => {
+                const stepIdx = parseInt(key);
+                if (next[stepIdx].isRunning && next[stepIdx].remaining > 0) {
+                    next[stepIdx] = { ...next[stepIdx], remaining: next[stepIdx].remaining - 1 };
+                    hasChanges = true;
+                    
+                    if (next[stepIdx].remaining === 0) {
+                        next[stepIdx].isRunning = false;
+                        new Audio('https://assets.mixkit.co/sfx/preview/mixkit-kitchen-timer-bell-1793.mp3').play().catch(() => {});
+                        alert(`Timer for Step ${stepIdx + 1} finished!`);
+                    }
+                }
+            });
+            
+            return hasChanges ? next : prev;
+        });
+    }, 1000);
+
+    return () => {
+        if (timerIntervalRef.current) window.clearInterval(timerIntervalRef.current);
+    };
+  }, []);
+
   const toggleListening = () => {
       if (!recognitionRef.current) {
           alert("Voice control is not supported in this browser.");
@@ -89,28 +114,77 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onClose, onCom
       }
   };
 
-  // Cleanup
   useEffect(() => {
       return () => {
           if (recognitionRef.current) recognitionRef.current.stop();
       };
   }, []);
 
-  // Text to Speech
   const speakStep = (text: string) => {
-      window.speechSynthesis.cancel(); // Stop previous
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       window.speechSynthesis.speak(utterance);
   };
-
-  // Auto-speak when step changes (Optional - maybe too annoying? Let's make it manual or voice triggered only)
-  // useEffect(() => { speakStep(steps[currentStep]); }, [currentStep]);
 
   const handleFinish = () => {
       if (recognitionRef.current) recognitionRef.current.stop();
       onComplete();
       onClose();
   };
+
+  // Timer Helpers
+  const extractTime = (text: string): number | null => {
+      // Regex to find "X minutes", "X mins", "1 hour", etc.
+      const match = text.match(/(\d+)\s*(minute|min|hour|hr|second|sec)/i);
+      if (match) {
+          const val = parseInt(match[1]);
+          const unit = match[2].toLowerCase();
+          if (unit.startsWith('hour') || unit.startsWith('hr')) return val * 3600;
+          if (unit.startsWith('min')) return val * 60;
+          if (unit.startsWith('sec')) return val;
+      }
+      return null;
+  };
+
+  const detectedDuration = extractTime(steps[currentStep]);
+
+  const toggleTimer = () => {
+      if (!detectedDuration) return;
+      
+      setActiveTimers(prev => {
+          const current = prev[currentStep];
+          if (current) {
+              return {
+                  ...prev,
+                  [currentStep]: { ...current, isRunning: !current.isRunning }
+              };
+          } else {
+              return {
+                  ...prev,
+                  [currentStep]: { remaining: detectedDuration, isRunning: true, original: detectedDuration }
+              };
+          }
+      });
+  };
+
+  const resetTimer = () => {
+      setActiveTimers(prev => {
+          const current = prev[currentStep];
+          if (!current) return prev;
+          return {
+              ...prev,
+              [currentStep]: { ...current, remaining: current.original, isRunning: false }
+          };
+      });
+  };
+
+  const formatTime = (seconds: number) => {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const timerState = activeTimers[currentStep];
 
   return (
     <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-900 flex flex-col transition-colors duration-200">
@@ -141,17 +215,16 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onClose, onCom
         </div>
       </div>
 
-      {/* Main Content - Focus Area */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 text-center max-w-4xl mx-auto w-full relative">
         
-        {/* Transcript Overlay */}
         {transcript && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm backdrop-blur-md animate-in fade-in slide-in-from-top-4">
                 "{transcript}"
             </div>
         )}
 
-        <div className="mb-8">
+        <div className="mb-8 w-full">
            <span className="inline-block px-4 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full text-sm font-semibold mb-6">
               Step {currentStep + 1} of {steps.length}
            </span>
@@ -159,16 +232,42 @@ export const CookingMode: React.FC<CookingModeProps> = ({ recipe, onClose, onCom
              {steps[currentStep]}
            </h3>
            
-           <button 
-              onClick={() => speakStep(steps[currentStep])}
-              className="mt-6 p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition"
-              title="Read aloud"
-           >
-              <Volume2 className="w-6 h-6" />
-           </button>
+           <div className="flex justify-center gap-4 mt-8">
+                <button 
+                    onClick={() => speakStep(steps[currentStep])}
+                    className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition shadow-sm"
+                    title="Read aloud"
+                >
+                    <Volume2 className="w-6 h-6" />
+                </button>
+
+                {/* Smart Timer Button */}
+                {detectedDuration && (
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={toggleTimer}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-lg transition shadow-sm ${
+                                timerState?.isRunning 
+                                ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' 
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-200'
+                            }`}
+                        >
+                            {timerState?.isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                            {timerState ? formatTime(timerState.remaining) : formatTime(detectedDuration)}
+                        </button>
+                        {timerState && (
+                            <button 
+                                onClick={resetTimer}
+                                className="p-4 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                            >
+                                <RotateCcw className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
+                )}
+           </div>
         </div>
 
-        {/* Progress Bar */}
         <div className="w-full max-w-xs h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-8 overflow-hidden">
             <div 
               className="h-full bg-emerald-500 transition-all duration-300 ease-out"
